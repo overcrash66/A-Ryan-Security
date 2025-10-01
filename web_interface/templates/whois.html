@@ -1,0 +1,786 @@
+{% extends "base.html" %}
+
+{% block title %}Whois IP Lookup - A-Ryan Security{% endblock %}
+
+{% block content %}
+{% include 'loading_component.html' %}
+
+<div class="whois-header">
+    <h1>🌐 Whois IP Address Lookup</h1>
+    <p class="whois-subtitle">Investigate IP addresses and gather network intelligence</p>
+</div>
+
+<div class="whois-container">
+    <div class="lookup-card">
+        <div class="card-header">
+            <h3>🔍 IP Address Lookup</h3>
+            <div class="lookup-badges">
+                <span class="feature-badge">Real-time Data</span>
+                <span class="feature-badge">Cached Results</span>
+            </div>
+        </div>
+        
+        <div class="lookup-form">
+            <form id="whoisForm">
+                <div class="input-group">
+                    <input type="text" id="ipInput" class="form-control ip-input" 
+                           placeholder="Enter IP address (e.g., 8.8.8.8)" 
+                           pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                           required>
+                    <button type="submit" class="btn btn-primary lookup-btn">
+                        <span class="btn-text">🔍 Lookup</span>
+                        <span class="btn-loading" style="display: none;">
+                            <span class="spinner"></span> Looking up...
+                        </span>
+                    </button>
+                </div>
+                <div class="input-validation" id="inputValidation" style="display: none;"></div>
+            </form>
+            
+            <div class="quick-lookups">
+                <h4>Quick Lookups:</h4>
+                <div class="quick-buttons">
+                    <button type="button" class="btn btn-sm btn-outline" style="color: black;" onclick="quickLookup('8.8.8.8')">
+                        🌐 Google DNS
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline" style="color: black;" onclick="quickLookup('1.1.1.1')">
+                        ☁️ Cloudflare DNS
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline" style="color: black;" onclick="quickLookup('208.67.222.222')">
+                        🛡️ OpenDNS
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline" style="color: black;" onclick="getMyIP()">
+                        📍 My Public IP
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="results-container" id="resultsContainer" style="display: none;">
+        <div class="results-card">
+            <div class="card-header">
+                <h3 id="resultsTitle">📊 Lookup Results</h3>
+                <div class="result-badges" id="resultBadges"></div>
+            </div>
+            
+            <div class="results-content" id="resultsContent">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-grid">
+            <div class="info-card">
+                <h4>🔍 What is Whois?</h4>
+                <p>Whois is a query protocol that provides information about IP addresses, domain names, and network resources. It helps identify:</p>
+                <ul>
+                    <li>IP address ownership and registration</li>
+                    <li>Geographic location information</li>
+                    <li>Internet Service Provider (ISP) details</li>
+                    <li>Autonomous System Number (ASN)</li>
+                    <li>Network contact information</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h4>🛡️ Security Applications</h4>
+                <p>Whois lookups are essential for cybersecurity investigations:</p>
+                <ul>
+                    <li>Identifying suspicious IP addresses</li>
+                    <li>Tracking malicious network activity</li>
+                    <li>Investigating security incidents</li>
+                    <li>Verifying legitimate network sources</li>
+                    <li>Gathering threat intelligence</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h4>⚡ Enhanced Features</h4>
+                <p>Our enhanced Whois lookup service provides:</p>
+                <ul>
+                    <li>🌐 Multiple API integrations (ipapi.co, ip-api.com, ipinfo.io)</li>
+                    <li>⚡ Real-time IP address information</li>
+                    <li>📦 Cached results for faster lookups</li>
+                    <li>🔍 Detailed network analysis with geographic data</li>
+                    <li>🌍 Comprehensive location data (city, region, coordinates)</li>
+                    <li>🏢 ISP, organization, and ASN details</li>
+                    <li>🕐 Timezone and postal code information</li>
+                    <li>🔄 Intelligent fallback system across multiple sources</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.whois-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.whois-header h1 {
+    font-size: 2.2rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.whois-subtitle {
+    font-size: 1rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.whois-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.lookup-card, .results-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.lookup-badges, .result-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.feature-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.lookup-form {
+    padding: 2rem;
+}
+
+.input-group {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: stretch;
+}
+
+.ip-input {
+    flex: 1;
+    padding: 1rem;
+    font-size: 1.1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-family: monospace;
+}
+
+.ip-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+}
+
+.ip-input.valid {
+    border-color: #28a745;
+}
+
+.ip-input.invalid {
+    border-color: #dc3545;
+}
+
+.lookup-btn {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    min-width: 140px;
+}
+
+.lookup-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.input-validation {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.input-validation.valid {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.input-validation.invalid {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.quick-lookups {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #101111;
+}
+
+.quick-lookups h4 {
+    margin: 0 0 1rem 0;
+    color: #0f0f0f;
+    font-size: 1rem;
+}
+
+.quick-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.results-content {
+    padding: 2rem;
+}
+
+.result-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.summary-item {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.summary-item h5 {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.summary-item .value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+    word-break: break-all;
+}
+
+.result-details {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.detail-value {
+    color: #212529;
+    text-align: right;
+    word-break: break-all;
+    max-width: 60%;
+}
+
+.whois-raw {
+    margin-top: 1.5rem;
+}
+
+.whois-raw details {
+    background: #1a202c;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.whois-raw summary {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    color: white;
+    padding: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.whois-raw summary:hover {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+.whois-raw pre {
+    background: #1a202c;
+    color: #f7fafc;
+    padding: 1.5rem;
+    margin: 0;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.error-message {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.error-message h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+}
+
+.cached-indicator {
+    background: rgba(40, 167, 69, 0.2);
+    color: #155724;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.info-section {
+    margin-top: 3rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.info-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.info-card h4 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.info-card p {
+    margin-bottom: 1rem;
+    color: #6c757d;
+    line-height: 1.6;
+}
+
+.info-card ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: #495057;
+}
+
+.info-card li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.cached-indicator {
+    background: rgba(40, 167, 69, 0.2);
+    color: #155724;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.source-indicator {
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .quick-buttons {
+        flex-direction: column;
+    }
+    
+    .result-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .detail-value {
+        max-width: 100%;
+        text-align: left;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+class WhoisLookup {
+    constructor() {
+        this.form = document.getElementById('whoisForm');
+        this.ipInput = document.getElementById('ipInput');
+        this.lookupBtn = this.form.querySelector('.lookup-btn');
+        this.btnText = this.lookupBtn.querySelector('.btn-text');
+        this.btnLoading = this.lookupBtn.querySelector('.btn-loading');
+        this.validation = document.getElementById('inputValidation');
+        this.resultsContainer = document.getElementById('resultsContainer');
+        this.resultsContent = document.getElementById('resultsContent');
+        this.resultsTitle = document.getElementById('resultsTitle');
+        this.resultBadges = document.getElementById('resultBadges');
+        
+        this.initializeEventListeners();
+    }
+    
+    initializeEventListeners() {
+        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        this.ipInput.addEventListener('input', () => this.validateInput());
+        this.ipInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.handleSubmit(e);
+            }
+        });
+    }
+    
+    validateInput() {
+        const ip = this.ipInput.value.trim();
+        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        
+        if (!ip) {
+            this.hideValidation();
+            this.ipInput.classList.remove('valid', 'invalid');
+            return false;
+        }
+        
+        if (ipRegex.test(ip)) {
+            this.showValidation('valid', '✅ Valid IP address format');
+            this.ipInput.classList.remove('invalid');
+            this.ipInput.classList.add('valid');
+            return true;
+        } else {
+            this.showValidation('invalid', '❌ Invalid IP address format');
+            this.ipInput.classList.remove('valid');
+            this.ipInput.classList.add('invalid');
+            return false;
+        }
+    }
+    
+    showValidation(type, message) {
+        this.validation.className = `input-validation ${type}`;
+        this.validation.textContent = message;
+        this.validation.style.display = 'block';
+    }
+    
+    hideValidation() {
+        this.validation.style.display = 'none';
+    }
+    
+    async handleSubmit(e) {
+        e.preventDefault();
+        
+        const ip = this.ipInput.value.trim();
+        if (!ip || !this.validateInput()) {
+            return;
+        }
+        
+        await this.performLookup(ip);
+    }
+    
+    async performLookup(ip) {
+        this.setLoadingState(true);
+        
+        // Show loading overlay
+        window.loadingManager.show('Looking up IP Address', `Gathering information for ${ip}...`);
+        window.loadingManager.nextStep('Validating IP address');
+        
+        try {
+            // Simulate progress steps
+            setTimeout(() => window.loadingManager.nextStep('Querying whois databases'), 500);
+            setTimeout(() => window.loadingManager.nextStep('Parsing network information'), 1000);
+            setTimeout(() => window.loadingManager.nextStep('Formatting results'), 1500);
+            
+            const response = await fetch(`/api/whois/${encodeURIComponent(ip)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                this.displayResults(result.data, result.cached);
+            } else {
+                this.displayError(result.error || 'Unknown error occurred');
+            }
+            
+        } catch (error) {
+            console.error('Lookup error:', error);
+            this.displayError(`Network error: ${error.message}`);
+        } finally {
+            this.setLoadingState(false);
+            window.loadingManager.hide();
+        }
+    }
+    
+    setLoadingState(loading) {
+        this.lookupBtn.disabled = loading;
+        if (loading) {
+            this.btnText.style.display = 'none';
+            this.btnLoading.style.display = 'inline-flex';
+        } else {
+            this.btnText.style.display = 'inline';
+            this.btnLoading.style.display = 'none';
+        }
+    }
+    
+    displayResults(data, cached = false) {
+        this.resultsTitle.textContent = `📊 Results for ${data.ip}`;
+        
+        // Update badges
+        this.resultBadges.innerHTML = '';
+        let badges = [];
+        
+        if (cached) {
+            badges.push('<span class="cached-indicator">📦 Cached Result</span>');
+        }
+        
+        if (data.source) {
+            const sourceColor = data.source === 'ipapi.co' ? '#28a745' :
+                               data.source === 'ip-api.com' ? '#17a2b8' :
+                               data.source === 'ipinfo.io' ? '#6f42c1' :
+                               data.source === 'Traditional Whois' ? '#fd7e14' : '#6c757d';
+            badges.push(`<span class="source-indicator" style="background-color: ${sourceColor};">🌐 ${data.source}</span>`);
+        }
+        
+        this.resultBadges.innerHTML = badges.join(' ');
+        
+        if (data.error) {
+            this.displayError(data.error);
+            return;
+        }
+        
+        // Create results HTML
+        const resultsHTML = `
+            <div class="result-summary">
+                <div class="summary-item">
+                    <h5>IP Address</h5>
+                    <div class="value">${data.ip}</div>
+                </div>
+                <div class="summary-item">
+                    <h5>Hostname</h5>
+                    <div class="value">${data.hostname || 'Unknown'}</div>
+                </div>
+                <div class="summary-item">
+                    <h5>Organization</h5>
+                    <div class="value">${data.organization || 'Unknown'}</div>
+                </div>
+                <div class="summary-item">
+                    <h5>Country</h5>
+                    <div class="value">${data.country || 'Unknown'}</div>
+                </div>
+            </div>
+            
+            <div class="result-details">
+                <h4>📋 Detailed Information</h4>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">IP Version:</span>
+                        <span class="detail-value">IPv${data.version}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">ISP:</span>
+                        <span class="detail-value">${data.isp || 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">ASN:</span>
+                        <span class="detail-value">${data.asn || 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">City:</span>
+                        <span class="detail-value">${data.city || 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Region:</span>
+                        <span class="detail-value">${data.region || 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Country Code:</span>
+                        <span class="detail-value">${data.country_code || 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Postal Code:</span>
+                        <span class="detail-value">${data.postal || 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Timezone:</span>
+                        <span class="detail-value">${data.timezone || 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Coordinates:</span>
+                        <span class="detail-value">${data.latitude && data.longitude && data.latitude !== 'Unknown' ? `${data.latitude}, ${data.longitude}` : 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Data Source:</span>
+                        <span class="detail-value">${data.source || 'Unknown'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Private IP:</span>
+                        <span class="detail-value">${data.is_private ? '✅ Yes' : '❌ No'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Loopback:</span>
+                        <span class="detail-value">${data.is_loopback ? '✅ Yes' : '❌ No'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Multicast:</span>
+                        <span class="detail-value">${data.is_multicast ? '✅ Yes' : '❌ No'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Reserved:</span>
+                        <span class="detail-value">${data.is_reserved ? '✅ Yes' : '❌ No'}</span>
+                    </div>
+                </div>
+            </div>
+            
+            ${data.whois_data ? `
+                <div class="whois-raw">
+                    <details>
+                        <summary>🔍 Raw Whois Data</summary>
+                        <pre>${this.escapeHtml(data.whois_data)}</pre>
+                    </details>
+                </div>
+            ` : ''}
+        `;
+        
+        this.resultsContent.innerHTML = resultsHTML;
+        this.resultsContainer.style.display = 'block';
+        this.resultsContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    displayError(error) {
+        const errorHTML = `
+            <div class="error-message">
+                <h4>❌ Lookup Failed</h4>
+                <p>${this.escapeHtml(error)}</p>
+            </div>
+        `;
+        
+        this.resultsContent.innerHTML = errorHTML;
+        this.resultsContainer.style.display = 'block';
+        this.resultsContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
+// Quick lookup functions
+function quickLookup(ip) {
+    const whoisLookup = window.whoisLookupInstance;
+    whoisLookup.ipInput.value = ip;
+    whoisLookup.validateInput();
+    whoisLookup.performLookup(ip);
+}
+
+async function getMyIP() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        quickLookup(data.ip);
+    } catch (error) {
+        alert('Failed to get your public IP address. Please enter it manually.');
+    }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    window.whoisLookupInstance = new WhoisLookup();
+});
+</script>
+{% endblock %}

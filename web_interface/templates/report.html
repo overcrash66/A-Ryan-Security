@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+{% block content %}
+{% include 'loading_component.html' %}
+{% include 'skeleton_screens.html' %}
+
+<div class="report-header">
+    <h1>Security Report</h1>
+    <p class="report-subtitle">Comprehensive security analysis with AI-powered insights</p>
+</div>
+
+{% if filename %}
+    <div class="report-success">
+        <div class="success-card">
+            <div class="success-icon">✅</div>
+            <div class="success-content">
+                <h2>Report Generated Successfully!</h2>
+                <p>Your comprehensive security report has been generated with AI-powered recommendations and analysis.</p>
+                
+                <div class="report-features">
+                    <div class="feature-item">
+                        <span class="feature-icon">🤖</span>
+                        <span>AI Security Analysis</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📊</span>
+                        <span>Risk Assessment</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🔍</span>
+                        <span>Vulnerability Scan Results</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🛡️</span>
+                        <span>Security Recommendations</span>
+                    </div>
+                </div>
+                
+                <div class="report-actions">
+                    <a href="{{ filename }}" class="btn btn-primary btn-large" download>
+                        📄 Download Report
+                    </a>
+                    <a href="{{ filename }}" class="btn btn-secondary" target="_blank">
+                        👁️ Preview Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="report-info">
+        <div class="info-card">
+            <h3>📋 Report Contents</h3>
+            <ul class="report-contents">
+                <li>Executive Summary with AI Analysis</li>
+                <li>System Security Status Overview</li>
+                <li>Antivirus Protection Status</li>
+                <li>Firewall Configuration Analysis</li>
+                <li>Network Security Assessment</li>
+                <li>Vulnerability Scan Results</li>
+                <li>Traffic Analysis Summary</li>
+                <li>AI-Powered Security Recommendations</li>
+                <li>Risk Assessment & Mitigation Strategies</li>
+            </ul>
+        </div>
+        
+        <div class="info-card">
+            <h3>🤖 AI Enhancement Features</h3>
+            <div class="ai-features">
+                <div class="ai-feature">
+                    <strong>Intelligent Analysis:</strong> AI examines your security data to identify patterns and potential threats.
+                </div>
+                <div class="ai-feature">
+                    <strong>Personalized Recommendations:</strong> Get specific advice tailored to your system's security profile.
+                </div>
+                <div class="ai-feature">
+                    <strong>Risk Prioritization:</strong> AI helps prioritize security issues based on severity and impact.
+                </div>
+                <div class="ai-feature">
+                    <strong>Predictive Insights:</strong> Anticipate potential security challenges before they become critical.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+{% else %}
+    <div class="report-error">
+        <div class="error-card">
+            <div class="error-icon">❌</div>
+            <div class="error-content">
+                <h2>Report Generation Failed</h2>
+                <p>We encountered an issue while generating your security report. This could be due to:</p>
+                <ul class="error-reasons">
+                    <li>Temporary system overload</li>
+                    <li>AI service unavailability</li>
+                    <li>Insufficient security data</li>
+                    <li>File system permissions</li>
+                </ul>
+                <p>Please try again in a few moments.</p>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<div class="navigation-actions">
+    <a href="{{ url_for('status') }}" class="btn btn-outline" style="color: black;">🔍 Back to Status</a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline" style="color: black;">🏠 Dashboard</a>
+    {% if filename %}
+        <a href="{{ url_for('report') }}" class="btn btn-secondary" style="color: black;">🔄 Generate New Report</a>
+    {% else %}
+        <a href="{{ url_for('report') }}" class="btn btn-primary" style="color: black;">🔄 Try Again</a>
+    {% endif %}
+</div>
+
+<style>
+.report-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.report-header h1 {
+    font-size: 2.2rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.report-subtitle {
+    font-size: 1rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.report-success {
+    margin-bottom: 2rem;
+}
+
+.success-card {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 8px 30px rgba(40, 167, 69, 0.3);
+    text-align: center;
+}
+
+.success-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.success-content h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.success-content p {
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.report-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.feature-icon {
+    font-size: 1.2rem;
+}
+
+.report-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.report-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.info-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.info-card h3 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.report-contents {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.report-contents li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f8f9fa;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.report-contents li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #28a745;
+    font-weight: bold;
+}
+
+.report-contents li:last-child {
+    border-bottom: none;
+}
+
+.ai-features {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ai-feature {
+    padding: 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.ai-feature strong {
+    color: #495057;
+}
+
+.report-error {
+    margin-bottom: 2rem;
+}
+
+.error-card {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 8px 30px rgba(220, 53, 69, 0.3);
+    text-align: center;
+}
+
+.error-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.error-content h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.error-content p {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.error-reasons {
+    text-align: left;
+    max-width: 400px;
+    margin: 1rem auto;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.error-reasons li {
+    margin: 0.5rem 0;
+}
+
+.navigation-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .report-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .report-features {
+        grid-template-columns: 1fr;
+    }
+    
+    .report-actions,
+    .navigation-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn-large {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+</style>
+
+<script>
+
+// Enhanced report loader with skeleton management
+class ReportPageLoader {
+    constructor() {
+        this.initializeReportGeneration();
+    }
+    
+    initializeReportGeneration() {
+        // Auto-show loading when generating a new report
+        const generateButtons = document.querySelectorAll('a[href*="report"]');
+        generateButtons.forEach(button => {
+            if (button.textContent.includes('Generate')) {
+                button.addEventListener('click', (e) => {
+                    this.showReportGenerationLoading();
+                });
+            }
+        });
+    }
+    
+    showReportGenerationLoading() {
+        // Hide skeleton and show detailed loading
+        if (window.skeletonManager) {
+            window.skeletonManager.hideSkeleton('report');
+        }
+        
+        window.loadingManager.show('Generating Security Report', 'Creating comprehensive security analysis with AI insights...');
+        
+        // Simulate report generation steps
+        setTimeout(() => window.loadingManager.nextStep('Collecting security data'), 500);
+        setTimeout(() => window.loadingManager.nextStep('Running vulnerability analysis'), 1200);
+        setTimeout(() => window.loadingManager.nextStep('Generating AI recommendations'), 2000);
+        setTimeout(() => window.loadingManager.nextStep('Creating PDF report'), 2800);
+        
+        // The page will reload when the report is ready, so we don't need to hide the loading
+    }
+    
+    async loadReportData() {
+        // Hide skeleton and show detailed loading
+        if (window.skeletonManager) {
+            window.skeletonManager.hideSkeleton('report');
+        }
+        
+        window.loadingManager.show('Loading Report Status', 'Checking report generation status...');
+        
+        try {
+            window.loadingManager.nextStep('Verifying report availability');
+            await this.simulateDelay(600);
+            
+            window.loadingManager.nextStep('Loading report details');
+            await this.simulateDelay(400);
+            
+            window.loadingManager.updateProgress(100);
+            
+        } catch (error) {
+            console.error('Error loading report data:', error);
+        } finally {
+            window.loadingManager.hide();
+        }
+    }
+    
+    simulateDelay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Initialize report loader
+let reportLoader = null;
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.pathname === '/report') {
+        reportLoader = new ReportPageLoader();
+        
+        // Show skeleton screen while loading
+        if (window.skeletonManager) {
+            window.skeletonManager.showSkeleton('report');
+        }
+        
+        // Start loading data immediately
+        setTimeout(() => {
+            if (reportLoader) {
+                reportLoader.loadReportData();
+            }
+        }, 100);
+    }
+});
+
+// Hide skeleton when window loads completely
+window.addEventListener('load', function() {
+    if (window.skeletonManager) {
+        window.skeletonManager.hideAllSkeletons();
+    }
+});
+</script>
+{% endblock %}

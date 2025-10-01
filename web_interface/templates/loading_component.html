@@ -1,0 +1,332 @@
+<!-- Professional Loading Component -->
+<div class="loading-overlay active" id="loadingOverlay">
+    <div class="loading-container">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+        </div>
+        <div class="loading-text">
+            <h3 id="loadingTitle">Loading Security Data</h3>
+            <p id="loadingMessage">Please wait while we gather your security information...</p>
+            <div class="loading-progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="loading-steps" id="loadingSteps">
+                <div class="step" id="step1">
+                    <span class="step-icon">🔍</span>
+                    <span class="step-text">Scanning system status</span>
+                </div>
+                <div class="step" id="step2">
+                    <span class="step-icon">🛡️</span>
+                    <span class="step-text">Checking security components</span>
+                </div>
+                <div class="step" id="step3">
+                    <span class="step-icon">📊</span>
+                    <span class="step-text">Analyzing data</span>
+                </div>
+                <div class="step" id="step4">
+                    <span class="step-icon">🤖</span>
+                    <span class="step-text">Generating AI insights</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-container {
+    text-align: center;
+    max-width: 500px;
+    padding: 2rem;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.loading-spinner {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 2rem;
+}
+
+.spinner-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 4px solid transparent;
+    border-radius: 50%;
+    animation: spin 1.5s linear infinite;
+}
+
+.spinner-ring:nth-child(1) {
+    border-top-color: #667eea;
+    animation-delay: 0s;
+}
+
+.spinner-ring:nth-child(2) {
+    border-right-color: #764ba2;
+    animation-delay: 0.3s;
+}
+
+.spinner-ring:nth-child(3) {
+    border-bottom-color: #f093fb;
+    animation-delay: 0.6s;
+}
+
+.spinner-ring:nth-child(4) {
+    border-left-color: #f5576c;
+    animation-delay: 0.9s;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text h3 {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.loading-text p {
+    margin: 0 0 1.5rem 0;
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+.loading-progress {
+    width: 100%;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: progressPulse 2s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.loading-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: left;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+}
+
+.step.active {
+    opacity: 1;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    transform: translateX(5px);
+}
+
+.step.completed {
+    opacity: 1;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.step-icon {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+}
+
+.step.completed .step-icon::before {
+    content: "✅";
+}
+
+.step-text {
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .loading-container {
+        margin: 1rem;
+        padding: 1.5rem;
+        max-width: none;
+    }
+    
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .loading-text h3 {
+        font-size: 1.3rem;
+    }
+    
+    .loading-steps {
+        gap: 0.5rem;
+    }
+}
+</style>
+
+<script>
+// Avoid duplicate declaration
+if (!window.loadingManager) {
+    class LoadingManager {
+        constructor() {
+            this.overlay = document.getElementById('loadingOverlay');
+            this.title = document.getElementById('loadingTitle');
+            this.message = document.getElementById('loadingMessage');
+            this.progressBar = document.getElementById('progressBar');
+            this.steps = ['step1', 'step2', 'step3', 'step4'];
+            this.currentStep = 0;
+            this.progress = 0;
+        }
+
+        show(title = 'Loading Security Data', message = 'Please wait while we gather your security information...') {
+            if (this.overlay) {
+                this.overlay.classList.add('active');
+                this.setTitle(title);
+                this.setMessage(message);
+                // Timeout to prevent infinite loading
+                setTimeout(() => {
+                    if (this.overlay.classList.contains('active')) {
+                        this.hide();
+                        alert('Loading failed. Check server logs or try again.');
+                    }
+                }, 60000);  // 60s timeout
+            }
+        }
+
+        hide() {
+            if (this.overlay) {
+                this.overlay.classList.remove('active');
+                setTimeout(() => this.reset(), 300);
+            }
+        }
+
+        reset() {
+            this.currentStep = 0;
+            this.progress = 0;
+            if (this.progressBar) {
+                this.progressBar.style.width = '0%';
+            }
+            this.steps.forEach(stepId => {
+                const step = document.getElementById(stepId);
+                if (step) {
+                    step.classList.remove('active', 'completed');
+                }
+            });
+        }
+
+        updateProgress(percentage) {
+            this.progress = Math.min(100, Math.max(0, percentage));
+            if (this.progressBar) {
+                this.progressBar.style.width = this.progress + '%';
+            }
+        }
+
+        nextStep(stepText = null) {
+            if (this.currentStep > 0) {
+                const currentStepEl = document.getElementById(this.steps[this.currentStep - 1]);
+                if (currentStepEl) {
+                    currentStepEl.classList.remove('active');
+                    currentStepEl.classList.add('completed');
+                }
+            }
+
+            if (this.currentStep < this.steps.length) {
+                const nextStepEl = document.getElementById(this.steps[this.currentStep]);
+                if (nextStepEl) {
+                    nextStepEl.classList.add('active');
+                    if (stepText) {
+                        const stepTextEl = nextStepEl.querySelector('.step-text');
+                        if (stepTextEl) stepTextEl.textContent = stepText;  // Fixed syntax
+                    }
+                }
+                this.currentStep++;
+            }
+
+            this.updateProgress((this.currentStep / this.steps.length) * 100);
+        }
+
+        setMessage(message) {
+            if (this.message) {
+                this.message.textContent = message;
+            }
+        }
+
+        setTitle(title) {
+            if (this.title) {
+                this.title.textContent = title;
+            }
+        }
+    }
+
+    window.loadingManager = new LoadingManager();
+}
+
+// Fallback: Hide loader on page load or error
+window.addEventListener('load', function() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay && overlay.classList.contains('active')) {
+        setTimeout(() => {
+            overlay.classList.remove('active');
+            console.log('Loader hidden due to page load');
+        }, 1000);
+    }
+});
+
+// Fallback for SocketIO errors
+// window.addEventListener('error', function() {
+//     const overlay = document.getElementById('loadingOverlay');
+//     if (overlay && overlay.classList.contains('active')) {
+//         setTimeout(() => {
+//             overlay.classList.remove('active');
+//             alert('Error loading scripts. Check console for details.');
+//         }, 1000);
+//     }
+// });
+</script>

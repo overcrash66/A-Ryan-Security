@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+
+{% block title %}Process Security Scan - A-Ryan Security{% endblock %}
+
+{% block content %}
+{% include 'loading_component.html' %}
+{% include 'skeleton_screens.html' %}
+<!-- new -->
+<div id="processLoading" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p>Scanning processes and system services...</p>
+</div>
+
+<style>
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+<!-- end -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-tasks"></i> Windows Process Security Scan</h2>
+                <button id="refreshBtn" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> Refresh Scan
+                </button>
+            </div>
+            
+            {% if data.processes.error %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Error:</strong> {{ data.processes.error }}
+                </div>
+            {% else %}
+                <!-- Process Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ data.processes.total_processes }}</h4>
+                                        <p class="mb-0">Total Processes</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-list fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card {% if data.processes.suspicious_processes > 0 %}bg-danger{% else %}bg-success{% endif %} text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ data.processes.suspicious_processes }}</h4>
+                                        <p class="mb-0">Suspicious Processes</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ data.processes.high_resource_processes }}</h4>
+                                        <p class="mb-0">High Resource Usage</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-chart-line fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ data.processes.network_processes }}</h4>
+                                        <p class="mb-0">Network Processes</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-network-wired fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Analysis -->
+                {% if data.processes.security_analysis %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-shield-alt"></i> Security Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Risk Level: 
+                                    <span class="badge {% if data.processes.security_analysis.risk_level == 'HIGH' %}badge-danger{% elif data.processes.security_analysis.risk_level == 'MEDIUM' %}badge-warning{% else %}badge-success{% endif %}">
+                                        {{ data.processes.security_analysis.risk_level }}
+                                    </span>
+                                </h6>
+                                
+                                <h6 class="mt-3">Key Findings:</h6>
+                                <ul class="list-unstyled">
+                                    {% for finding in data.processes.security_analysis.findings %}
+                                    <li><i class="fas fa-chevron-right text-primary"></i> {{ finding }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6>Recommendations:</h6>
+                                <ul class="list-unstyled">
+                                    {% for recommendation in data.processes.security_analysis.recommendations[:5] %}
+                                    <li><i class="fas fa-check text-success"></i> {{ recommendation }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Suspicious Processes -->
+                {% if data.processes.suspicious_details %}
+                <div class="card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Suspicious Processes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Process Name</th>
+                                        <th>PID</th>
+                                        <th>Path</th>
+                                        <th>User</th>
+                                        <th>Indicators</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for process in data.processes.suspicious_details %}
+                                    <tr>
+                                        <td><strong>{{ process.name }}</strong></td>
+                                        <td>{{ process.pid }}</td>
+                                        <td><small>{{ process.exe_path }}</small></td>
+                                        <td>{{ process.username or 'N/A' }}</td>
+                                        <td>
+                                            {% for indicator in process.suspicious_indicators[:2] %}
+                                            <span class="badge badge-warning">{{ indicator }}</span><br>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- High Resource Processes -->
+                {% if data.processes.high_resource_details %}
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-white">
+                        <h5><i class="fas fa-chart-line"></i> High Resource Usage Processes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Process Name</th>
+                                        <th>PID</th>
+                                        <th>CPU %</th>
+                                        <th>Memory %</th>
+                                        <th>User</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for process in data.processes.high_resource_details %}
+                                    <tr>
+                                        <td><strong>{{ process.name }}</strong></td>
+                                        <td>{{ process.pid }}</td>
+                                        <td>
+                                            {% if process.cpu_percent %}
+                                            <span class="badge {% if process.cpu_percent > 50 %}badge-danger{% elif process.cpu_percent > 25 %}badge-warning{% else %}badge-info{% endif %}">
+                                                {{ "%.1f"|format(process.cpu_percent) }}%
+                                            </span>
+                                            {% else %}N/A{% endif %}
+                                        </td>
+                                        <td>
+                                            {% if process.memory_percent %}
+                                            <span class="badge {% if process.memory_percent > 20 %}badge-danger{% elif process.memory_percent > 10 %}badge-warning{% else %}badge-info{% endif %}">
+                                                {{ "%.1f"|format(process.memory_percent) }}%
+                                            </span>
+                                            {% else %}N/A{% endif %}
+                                        </td>
+                                        <td>{{ process.username or 'N/A' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Network Processes -->
+                {% if data.processes.network_details %}
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="fas fa-network-wired"></i> Network Active Processes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Process Name</th>
+                                        <th>PID</th>
+                                        <th>Connections</th>
+                                        <th>Listening Ports</th>
+                                        <th>User</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for process in data.processes.network_details %}
+                                    <tr>
+                                        <td><strong>{{ process.name }}</strong></td>
+                                        <td>{{ process.pid }}</td>
+                                        <td>
+                                            <span class="badge {% if process.network_connections > 10 %}badge-warning{% else %}badge-info{% endif %}">
+                                                {{ process.network_connections }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if process.listening_ports %}
+                                                {% for port in process.listening_ports[:3] %}
+                                                <span class="badge badge-secondary">{{ port }}</span>
+                                                {% endfor %}
+                                                {% if process.listening_ports|length > 3 %}
+                                                <span class="badge badge-light">+{{ process.listening_ports|length - 3 }} more</span>
+                                                {% endif %}
+                                            {% else %}
+                                            <span class="text-muted">None</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ process.username or 'N/A' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- System Services Summary -->
+                {% if data.services and not data.services.error %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cogs"></i> System Services Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h4 class="text-info">{{ data.services.total_services }}</h4>
+                                    <p>Total Services</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h4 class="text-success">{{ data.services.running_services }}</h4>
+                                    <p>Running Services</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h4 class="text-secondary">{{ data.services.stopped_services }}</h4>
+                                    <p>Stopped Services</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Startup Programs Summary -->
+                {% if data.startup and not data.startup.error %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-play-circle"></i> Startup Programs</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Total Startup Programs:</strong> {{ data.startup.total_startup_programs }}</p>
+                        {% if data.startup.startup_programs %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Program Name</th>
+                                        <th>Command</th>
+                                        <th>Registry Location</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for program in data.startup.startup_programs[:10] %}
+                                    <tr>
+                                        <td><strong>{{ program.name }}</strong></td>
+                                        <td><small>{{ program.command[:50] }}{% if program.command|length > 50 %}...{% endif %}</small></td>
+                                        <td><small>{{ program.location }}</small></td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if data.startup.startup_programs|length > 10 %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">
+                                            <em>... and {{ data.startup.startup_programs|length - 10 }} more programs</em>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card">
+                    <div class="card-footer text-muted">
+                        <small><i class="fas fa-clock"></i> Last scan: {{ data.scan_time }}</small>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Process scan page loading functionality
+class ProcessScanLoader {
+    constructor() {
+        this.refreshBtn = document.getElementById('refreshBtn');
+        this.initializeEventListeners();
+    }
+    
+    initializeEventListeners() {
+        if (this.refreshBtn) {
+            this.refreshBtn.addEventListener('click', () => this.refreshProcessData());
+        }
+    }
+    
+    async refreshProcessData() {
+        document.getElementById('processLoading').style.display = 'flex';
+        window.loadingManager.show('Refreshing Process Data', 'Scanning running processes and system services...');
+        
+        const btn = this.refreshBtn;
+        const originalText = btn.innerHTML;
+        
+        // Show loading state on button
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        btn.disabled = true;
+        
+        try {
+            window.loadingManager.nextStep('Scanning running processes');
+            
+            const response = await fetch('/api/process_refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+                }
+            });
+            
+            window.loadingManager.nextStep('Analyzing system services');
+            const data = await response.json();
+            
+            window.loadingManager.nextStep('Updating security analysis');
+            
+            if (data.status === 'success') {
+                window.loadingManager.updateProgress(100);
+                document.getElementById('processLoading').style.display = 'none';
+                // Small delay to show completion
+                // setTimeout(() => {
+                //     window.location.reload();
+                // }, 500);
+            } else {
+                throw new Error(data.message || 'Unknown error occurred');
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            window.loadingManager.hide();
+            alert('Error refreshing data: ' + error.message);
+            
+            // Restore button state
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+    
+    async loadProcessData() {
+        window.loadingManager.show('Loading Process Security Scan', 'Analyzing system processes and security status...');
+        
+        try {
+            window.loadingManager.nextStep('Scanning running processes');
+            await this.simulateDelay(800);
+            
+            window.loadingManager.nextStep('Analyzing system services');
+            await this.simulateDelay(600);
+            
+            window.loadingManager.nextStep('Checking startup programs');
+            await this.simulateDelay(400);
+            
+            window.loadingManager.nextStep('Generating security analysis');
+            await this.simulateDelay(500);
+            
+            window.loadingManager.updateProgress(100);
+            
+        } catch (error) {
+            console.error('Error loading process data:', error);
+        } finally {
+            window.loadingManager.hide();
+        }
+    }
+    
+    simulateDelay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Immediate page loading management - runs before DOM is ready
+(function() {
+    if (window.location.pathname === '/process_scan') {
+        // Show skeleton screen immediately
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.skeletonManager) {
+                window.skeletonManager.showSkeleton('process');
+            }
+        });
+    }
+})();
+
+// Initialize process scan loader
+let processScanLoader = null;
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.pathname === '/process_scan') {
+        processScanLoader = new ProcessScanLoader();
+        
+        // Show skeleton screen while loading
+        if (window.skeletonManager) {
+            window.skeletonManager.showSkeleton('process');
+        }
+        
+        // Start loading data immediately
+        setTimeout(() => {
+            if (processScanLoader) {
+                processScanLoader.loadProcessData();
+            }
+        }, 100);
+    }
+});
+
+// Hide skeleton when window loads completely
+window.addEventListener('load', function() {
+    if (window.skeletonManager) {
+        window.skeletonManager.hideAllSkeletons();
+    }
+});
+</script>
+{% endblock %}

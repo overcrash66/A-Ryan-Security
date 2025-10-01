@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="custom-scan-header">
+    <h1>Custom Vulnerability Scan</h1>
+    <p class="scan-subtitle">Select a folder to scan for vulnerabilities using OSV-Scanner</p>
+</div>
+
+{% if preferred_scan_path %}
+<div class="preferred-path-info">
+    <div class="alert alert-info">
+        <h4>📌 Current Preferred Scan Path</h4>
+        <p><strong>{{ preferred_scan_path }}</strong></p>
+        <p><small>This path will be used for Status and Report scans. You can change it by running a new custom scan.</small></p>
+        <form method="POST" action="{{ url_for('clear_preferred_path') }}" style="display: inline;">
+            {% if form and form.csrf_token %}{{ form.csrf_token }}{% endif %}
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Clear Preferred Path</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="scan-form-container">
+    <div class="scan-form-card">
+        <form method="POST" class="custom-scan-form">
+            {% if form and form.csrf_token %}{{ form.csrf_token }}{% endif %}
+            <div class="form-group">
+                <label for="scan_path" class="form-label">
+                    <i class="icon">📁</i> Scan Path
+                </label>
+                <div class="path-input-container">
+                    <!-- File picker button (modern browsers) -->
+                    <button type="button" id="folderPickerBtn" class="btn btn-outline folder-picker-btn">
+                        📁 Browse Folders
+                    </button>
+                    <!-- Hidden file input for directory selection -->
+                    <input type="file" id="folderPicker" webkitdirectory directory multiple style="display: none;">
+                    <!-- Text input as fallback -->
+                    <input
+                        type="text"
+                        id="scan_path"
+                        name="scan_path"
+                        class="form-control path-input"
+                        placeholder="Enter path to scan (e.g., C:\Projects\MyApp or /home/user/projects)"
+                        required
+                    >
+                </div>
+                <div class="path-validation" id="pathValidation" style="display: none;"></div>
+                <div class="form-help">
+                    <small>Enter the full path to the directory you want to scan for vulnerabilities, or use the Browse button.</small>
+                </div>
+            </div>
+            
+            <div class="common-paths">
+                <h4>Common Scan Targets:</h4>
+                <div class="path-buttons">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="setPath('C:\\Windows\\System32')">
+                        🖥️ System Files
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="setPath('C:\\Program Files')">
+                        📦 Program Files
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="setPath('C:\\Users\\{{ current_user.username }}\\Documents')">
+                        📄 My Documents
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="setPath('C:\\Users\\{{ current_user.username }}\\Desktop')">
+                        🖥️ Desktop
+                    </button>
+                </div>
+            </div>
+            
+            <div class="scan-options">
+                <div class="warning-box">
+                    <h4>⚠️ Important Notes:</h4>
+                    <ul>
+                        <li>Scanning system directories may require administrator privileges</li>
+                        <li>Large directories may take several minutes to scan</li>
+                        <li>Scan results will be saved to your history</li>
+                        <li>Only scan directories you have permission to access</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    🔍 Start Vulnerability Scan
+                </button>
+                <a href="{{ url_for('status') }}" class="btn btn-secondary">
+                    ← Back to Status
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.custom-scan-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.custom-scan-header h1 {
+    font-size: 2.2rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.scan-subtitle {
+    font-size: 1rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.scan-form-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.scan-form-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.custom-scan-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.form-label .icon {
+    margin-right: 0.5rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-help {
+    margin-top: 0.5rem;
+}
+
+.form-help small {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.common-paths {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.common-paths h4 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 1rem;
+}
+
+.path-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.scan-options {
+    margin: 1.5rem 0;
+}
+
+.warning-box {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.warning-box h4 {
+    margin: 0 0 0.5rem 0;
+    color: #856404;
+    font-size: 1rem;
+}
+
+.warning-box ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: #856404;
+}
+
+.warning-box li {
+    margin-bottom: 0.25rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.btn-lg {
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .scan-form-card {
+        padding: 1.5rem;
+    }
+    
+    .path-buttons {
+        flex-direction: column;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* File Picker Styles */
+.path-input-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+    margin-bottom: 0.5rem;
+}
+
+.folder-picker-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    border: 2px solid #667eea;
+    color: #667eea;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.folder-picker-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+.folder-picker-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.path-input {
+    flex: 1;
+}
+
+.path-validation {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.path-validation.valid {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.path-validation.invalid {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.path-validation.checking {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+@media (max-width: 768px) {
+    .path-input-container {
+        flex-direction: column;
+    }
+    
+    .folder-picker-btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+function setPath(path) {
+    document.getElementById('scan_path').value = path;
+    // Trigger validation after setting path
+    const event = new Event('input', { bubbles: true });
+    document.getElementById('scan_path').dispatchEvent(event);
+}
+
+// File Picker and Enhanced Path Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const folderPickerBtn = document.getElementById('folderPickerBtn');
+    const folderPicker = document.getElementById('folderPicker');
+    const pathInput = document.getElementById('scan_path');
+    const pathValidation = document.getElementById('pathValidation');
+    const userAgent = navigator.userAgent;
+    
+    // Set default placeholder based on detected OS
+    if (userAgent.indexOf('Win') !== -1) {
+        pathInput.placeholder = 'Enter Windows path (e.g., C:\\Projects\\MyApp) or use Browse button';
+    } else if (userAgent.indexOf('Mac') !== -1) {
+        pathInput.placeholder = 'Enter macOS path (e.g., /Users/username/Projects) or use Browse button';
+    } else {
+        pathInput.placeholder = 'Enter Linux path (e.g., /home/username/projects) or use Browse button';
+    }
+    
+    // Check if browser supports directory picker
+    const supportsDirectoryPicker = 'webkitdirectory' in document.createElement('input');
+    
+    if (!supportsDirectoryPicker) {
+        folderPickerBtn.textContent = '📁 Browse (Limited Support)';
+        folderPickerBtn.title = 'Your browser has limited folder picker support. Please use the text input.';
+    }
+    
+    // Handle folder picker button click
+    folderPickerBtn.addEventListener('click', function() {
+        if (supportsDirectoryPicker) {
+            folderPicker.click();
+        } else {
+            // Fallback for browsers without directory support
+            alert('Your browser doesn\'t support folder picking. Please enter the path manually in the text field.');
+            pathInput.focus();
+        }
+    });
+    
+    // Handle folder selection
+    folderPicker.addEventListener('change', function(e) {
+        const files = e.target.files;
+        if (files.length > 0) {
+            // Get the common path from the first file
+            const firstFile = files[0];
+            let folderPath = firstFile.webkitRelativePath;
+            
+            // Extract the root folder path
+            const pathParts = folderPath.split('/');
+            if (pathParts.length > 1) {
+                // For web file picker, we get relative paths, but we need to construct the full path
+                // This is a limitation - we can't get the actual system path from web file picker
+                const folderName = pathParts[0];
+                pathInput.value = folderName;
+                showPathValidation('info', `Selected folder: ${folderName} (${files.length} files detected)`);
+                
+                // Trigger input event for validation
+                const event = new Event('input', { bubbles: true });
+                pathInput.dispatchEvent(event);
+            }
+        }
+    });
+    
+    // Real-time path validation
+    let validationTimeout;
+    pathInput.addEventListener('input', function() {
+        clearTimeout(validationTimeout);
+        const path = this.value.trim();
+        
+        if (!path) {
+            hidePathValidation();
+            return;
+        }
+        
+        // Show checking state
+        showPathValidation('checking', 'Validating path...');
+        
+        // Debounce validation
+        validationTimeout = setTimeout(() => {
+            validatePath(path);
+        }, 500);
+    });
+    
+    function validatePath(path) {
+        // Basic client-side validation
+        const isWindows = /^[A-Za-z]:\\/.test(path);
+        const isUnix = /^\//.test(path);
+        const isRelative = !isWindows && !isUnix;
+        
+        if (isRelative && !path.startsWith('./') && !path.startsWith('../')) {
+            showPathValidation('invalid', 'Please enter an absolute path (e.g., C:\\folder or /home/user/folder)');
+            return;
+        }
+        
+        // Check for potentially dangerous paths
+        const dangerousPaths = [
+            'C:\\Windows\\System32',
+            '/etc',
+            '/root',
+            '/sys',
+            '/proc'
+        ];
+        
+        const isDangerous = dangerousPaths.some(dangerous =>
+            path.toLowerCase().startsWith(dangerous.toLowerCase())
+        );
+        
+        if (isDangerous) {
+            showPathValidation('invalid', '⚠️ Warning: This appears to be a system directory. Proceed with caution.');
+            return;
+        }
+        
+        // Path looks valid
+        showPathValidation('valid', '✅ Path format appears valid');
+    }
+    
+    function showPathValidation(type, message) {
+        pathValidation.className = `path-validation ${type}`;
+        pathValidation.textContent = message;
+        pathValidation.style.display = 'block';
+    }
+    
+    function hidePathValidation() {
+        pathValidation.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

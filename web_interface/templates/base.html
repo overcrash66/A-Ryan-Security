@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}A-Ryan Security{% endblock %}</title>
+    <!-- Critical CSS loaded first -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='performance.css') }}" media="all">
+    <!-- Non-critical CSS loaded asynchronously -->
+    <link rel="preload" href="{{ url_for('static', filename='style.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></noscript>
+    
+    <!-- Immediate loading screen styles - loaded before any content -->
+    <style>
+        .immediate-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 10001;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            visibility: visible;
+        }
+        .immediate-loading-content {
+            text-align: center;
+            padding: 2rem;
+        }
+        .immediate-loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #e9ecef;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: immediateLoadSpin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes immediateLoadSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .immediate-loading-text {
+            color: #495057;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+    
+    <!-- Show immediate loading screen -->
+    <script>
+        // Create immediate loading screen before any content loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const immediateLoading = document.createElement('div');
+            immediateLoading.id = 'immediateLoadingOverlay';
+            immediateLoading.className = 'immediate-loading';
+            immediateLoading.innerHTML = `
+                <div class="immediate-loading-content">
+                    <div class="immediate-loading-spinner"></div>
+                    <div class="immediate-loading-text">Loading A-Ryan Security...</div>
+                </div>
+            `;
+            document.body.insertBefore(immediateLoading, document.body.firstChild);
+            
+            // Hide after a short delay to let page render
+            setTimeout(() => {
+                if (immediateLoading) {
+                    immediateLoading.style.opacity = '0';
+                    setTimeout(() => {
+                        if (immediateLoading.parentNode) {
+                            immediateLoading.parentNode.removeChild(immediateLoading);
+                        }
+                    }, 300);
+                }
+            }, 800);
+        });
+    </script>
+    
+    <!-- Load performance JavaScript first
+    <script src="{{ url_for('static', filename='performance.js') }}" defer></script> -->
+    
+    <!-- Load SocketIO asynchronously -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
+    <script defer>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof io !== 'undefined') {
+                var socket = io();
+                socket.on('connect', function() {
+                    console.log('Connected to SocketIO');
+                });
+                socket.on('live_update', function(data) {
+                    console.log('Live update:', data);
+                    // Update UI as needed
+                });
+            }
+        });
+    </script>
+    <style>
+        .alert {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .alert-error { background-color: #f8d7da; color: #721c24; }
+        .alert-warning { background-color: #fff3cd; color: #856404; }
+        .alert-success { background-color: #d4edda; color: #155724; }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        
+        .current-time {
+            color: #006400;
+            font-size: 0.8rem;
+            margin-top: 0.2rem;
+            font-weight: bold;
+            opacity: 1 !important;
+        }
+        
+        .current-time span {
+            font-family: monospace;
+            font-weight: bold;
+            color: #006400;
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <header class="main-header">
+        <div class="container">
+            <h1>A-Ryan Security</h1>
+            {% if current_user.is_authenticated %}
+                <div class="user-info">
+                    <div class="user-details">
+                        <span>Welcome, {{ current_user.username }}</span>
+                        <div class="current-time">
+                            <small>Current Time: <span id="current-time">{{ '' | current_time }}</span></small>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline">Logout</a>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Navigation -->
+    {% if current_user.is_authenticated %}
+    <nav class="main-nav">
+        <div class="container">
+            <ul class="nav-links">
+                <li><a href="{{ url_for('index') }}" class="nav-link {{ 'active' if request.endpoint == 'index' }}">
+                    <i class="icon-dashboard"></i>Dashboard
+                </a></li>
+                <li><a href="{{ url_for('status') }}" class="nav-link {{ 'active' if request.endpoint == 'status' }}">
+                    <i class="icon-status"></i>Status
+                </a></li>
+                <li><a href="{{ url_for('history') }}" class="nav-link {{ 'active' if request.endpoint == 'history' }}">
+                    <i class="icon-history"></i>History
+                </a></li>
+                <li><a href="{{ url_for('process_scan') }}" class="nav-link {{ 'active' if request.endpoint == 'process_scan' }}">
+                    <i class="icon-process"></i>Process Scan
+                </a></li>
+                <li><a href="{{ url_for('whois_lookup') }}" class="nav-link {{ 'active' if request.endpoint == 'whois_lookup' }}">
+                    <i class="icon-whois"></i>Whois Lookup
+                </a></li>
+                <li><a href="{{ url_for('report') }}" class="nav-link {{ 'active' if request.endpoint == 'report' }}">
+                    <i class="icon-report"></i>Reports
+                </a></li>
+            </ul>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; <span id="current-year">2024</span> A-Ryan Security. All rights reserved.</p>
+        </div>
+    </footer>
+    <script>
+        // Update current time every second
+        function updateCurrentTime() {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            };
+            const timeString = now.toLocaleString('en-CA', options);
+            const timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.textContent = timeString;
+            }
+        }
+        
+        // Update current year in footer
+        function updateCurrentYear() {
+            const now = new Date();
+            const yearElement = document.getElementById('current-year');
+            if (yearElement) {
+                yearElement.textContent = now.getFullYear();
+            }
+        }
+        
+        // Update time immediately and then every second
+        if (document.getElementById('current-time')) {
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+        }
+        
+        // Update year immediately
+        updateCurrentYear();
+    </script>
+</body>
+</html>
