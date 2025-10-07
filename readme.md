@@ -114,6 +114,7 @@ pip install -r requirements.txt
 3. Restart your terminal/PowerShell
 
 #### Install OSV-Scanner
+https://github.com/google/osv-scanner/releases
 ```bash
 # Download OSV-Scanner binary
 # Place osv-scanner_windows_amd64.exe in project root
@@ -121,7 +122,7 @@ pip install -r requirements.txt
 
 #### Install Ollama (for AI features)
 ```bash
-# Install Ollama from https://ollama.ai
+# Install Ollama from https://ollama.com/download
 ollama pull gemma3:4b
 ```
 
