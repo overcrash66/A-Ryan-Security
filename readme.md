@@ -46,7 +46,7 @@ A-Ryan Security is a sophisticated security enhancement tool that extends beyond
 - **Historical Data Analysis**: Comprehensive logs and audit trails
 - **Responsive Interface**: Bootstrap-powered responsive design for all devices
 
-### 🔐 **Enterprise Security Features**
+### 🔐 **Security Features**
 - **Role-Based Access Control**: Multi-level user permissions and access management
 - **Secure Authentication**: Flask-Login with bcrypt password hashing
 - **Audit Logging**: Comprehensive tracking of all user actions and system events
