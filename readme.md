@@ -14,7 +14,7 @@ A-Ryan Security is a sophisticated security enhancement tool that extends beyond
 
 ![image3](images/3.png)
 
-## Core FeaturesA-Ryan-Security
+## Core Features A-Ryan-Security
 
 ### 🔒 **Advanced Security Scanning**
 - **OSV-Scanner Integration**: Automated vulnerability scanning using Google's OSV database
