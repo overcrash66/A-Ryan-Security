@@ -229,9 +229,16 @@
                     <div class="path-input-container">
                         <!-- Hidden file input for directory selection -->
                         <input type="file" id="folderPicker" webkitdirectory directory multiple style="display: none;">
-                        <!-- Text input as fallback -->
+
+                        <!-- Text input -->
                         <input type="text" id="scan_path" name="scan_path" class="form-control path-input"
-                            placeholder="Enter path to scan (e.g., C:\Projects\MyApp)" required>
+                            placeholder="Select a folder..." required readonly>
+
+                        <!-- Browse Button -->
+                        <button type="button" id="folderPickerBtn" class="btn folder-picker-btn"
+                            onclick="openFolderPicker()">
+                            📁 Browse...
+                        </button>
                     </div>
                     <div class="path-validation" id="pathValidation" style="display: none;"></div>
                 </div>
@@ -876,6 +883,87 @@
 
 <script>
 
+    // Enhanced status loader with skeleton management
+    class StatusPageLoader {
+        constructor() {
+            this.loadingSteps = [
+                { id: 'av', name: 'Antivirus Protection', endpoint: '/api/status/av' },
+                { id: 'fw', name: 'Firewall Status', endpoint: '/api/status/fw' },
+                { id: 'vulns', name: 'Vulnerability Scan', endpoint: '/api/status/vulns' },
+                { id: 'net', name: 'Network Security', endpoint: '/api/status/net' },
+                { id: 'traffic', name: 'Traffic Analysis', endpoint: '/api/status/traffic' },
+                { id: 'processes', name: 'Process Security', endpoint: '/api/status/processes' },
+                { id: 'advice', name: 'AI Recommendations', endpoint: '/api/status/advice' }
+            ];
+            this.currentStep = 0;
+            this.data = {};
+        }
+
+        async loadStatusData(trigger = 'auto') {
+            this.trigger = trigger;
+
+            // Hide skeleton and show detailed loading
+            if (window.skeletonManager) {
+                window.skeletonManager.hideSkeleton('status');
+            }
+
+            window.loadingManager.show('Loading Security Status', 'Gathering comprehensive security information...');
+
+            try {
+                for (let i = 0; i < this.loadingSteps.length; i++) {
+                    const step = this.loadingSteps[i];
+                    window.loadingManager.nextStep(`Loading ${step.name}`);
+
+                    try {
+                        const response = await fetch(step.endpoint, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
+                            },
+                            credentials: 'include'
+                        });
+                        const result = await response.json();
+
+                        if (result.status === 'success') {
+                            this.data[step.id] = result.data;
+                        } else {
+                            console.error(`Error loading ${step.name}:`, result.error);
+                            this.data[step.id] = { error: result.error };
+                        }
+                    } catch (error) {
+                        console.error(`Network error loading ${step.name}:`, error);
+                        this.data[step.id] = { error: `Network error: ${error.message}` };
+                    }
+
+                    // Update progress
+                    window.loadingManager.updateProgress(((i + 1) / this.loadingSteps.length) * 100);
+                }
+
+                // Update the page with loaded data
+                this.updateStatusCards();
+
+            } catch (error) {
+                console.error('Error loading status data:', error);
+            } finally {
+                window.loadingManager.hide();
+            }
+        }
+
+        updateStatusCards() {
+            // Update each status card with the loaded data
+            // Reloading the page is the simplest way to show new server-side rendered data, 
+            // BUT we must avoid infinite loops. 
+            // Ideally, we should update the DOM elements directly using this.data.
+            // For now, since we removed the auto-load, a reload on MANUAL refresh is acceptable.
+            // But if called during auto-load, it causes a loop.
+            if (this.trigger === 'manual') {
+                location.reload();
+            } else {
+                console.log("Data loaded, but skipping reload to avoid loops. Implement DOM update here for better UX.");
+            }
+        }
+    }
+
     // Initialize status loader if we're on the status page
     let statusLoader = null;
     if (window.location.pathname === '/status') {
@@ -884,7 +972,7 @@
 
     function refreshStatus() {
         if (statusLoader) {
-            statusLoader.loadStatusData();
+            statusLoader.loadStatusData('manual');
         } else {
             // Fallback for non-async refresh
             const button = event.target;
@@ -921,85 +1009,24 @@
                 window.skeletonManager.showSkeleton('status');
             }
 
-            // Start loading data immediately
+            // Start loading data immediately ONLY if data is missing
+            // The server-side render already provides data. We shouldn't fetch it again automatically.
+            /* 
             setTimeout(() => {
                 if (statusLoader) {
-                    statusLoader.loadStatusData();
+                    statusLoader.loadStatusData(); 
                 }
             }, 100);
+            */
         }
     });
 
-    // Enhanced status loader with skeleton management
-    class StatusPageLoader {
-        constructor() {
-            this.loadingSteps = [
-                { id: 'av', name: 'Antivirus Protection', endpoint: '/api/status/av' },
-                { id: 'fw', name: 'Firewall Status', endpoint: '/api/status/fw' },
-                { id: 'vulns', name: 'Vulnerability Scan', endpoint: '/api/status/vulns' },
-                { id: 'net', name: 'Network Security', endpoint: '/api/status/net' },
-                { id: 'traffic', name: 'Traffic Analysis', endpoint: '/api/status/traffic' },
-                { id: 'processes', name: 'Process Security', endpoint: '/api/status/processes' },
-                { id: 'advice', name: 'AI Recommendations', endpoint: '/api/status/advice' }
-            ];
-            this.currentStep = 0;
-            this.data = {};
-        }
 
-        async loadStatusData() {
-            // Hide skeleton and show detailed loading
-            if (window.skeletonManager) {
-                window.skeletonManager.hideSkeleton('status');
-            }
-
-            window.loadingManager.show('Loading Security Status', 'Gathering comprehensive security information...');
-
-            try {
-                for (let i = 0; i < this.loadingSteps.length; i++) {
-                    const step = this.loadingSteps[i];
-                    window.loadingManager.nextStep(`Loading ${step.name}`);
-
-                    try {
-                        const response = await fetch(step.endpoint);
-                        const result = await response.json();
-
-                        if (result.status === 'success') {
-                            this.data[step.id] = result.data;
-                        } else {
-                            console.error(`Error loading ${step.name}:`, result.error);
-                            this.data[step.id] = { error: result.error };
-                        }
-                    } catch (error) {
-                        console.error(`Network error loading ${step.name}:`, error);
-                        this.data[step.id] = { error: `Network error: ${error.message}` };
-                    }
-
-                    // Update progress
-                    window.loadingManager.updateProgress(((i + 1) / this.loadingSteps.length) * 100);
-                }
-
-                // Update the page with loaded data
-                this.updateStatusCards();
-
-            } catch (error) {
-                console.error('Error loading status data:', error);
-            } finally {
-                window.loadingManager.hide();
-            }
-        }
-
-        updateStatusCards() {
-            // Update each status card with the loaded data
-            // This would require modifying the existing status cards to be updatable
-            // For now, we'll just reload the page with the cached data
-            location.reload();
-        }
-    }
 
     // Hide page loading when window loads completely
     window.addEventListener('load', function () {
         if (window.loadingManager) {
-            window.loadingManager.hidePageLoading();
+            window.loadingManager.hide();
         }
         if (window.skeletonManager) {
             window.skeletonManager.hideAllSkeletons();
@@ -1040,6 +1067,25 @@
         }
     });
 
+    // Global function for the button click
+    function openFolderPicker() {
+        // Elements needed
+        const folderPicker = document.getElementById('folderPicker');
+        const pathInput = document.getElementById('scan_path');
+
+        // Check if browser supports directory picker
+        const supportsDirectoryPicker = 'webkitdirectory' in document.createElement('input');
+
+        if (supportsDirectoryPicker) {
+            console.log('Opening folder picker...');
+            folderPicker.click();
+        } else {
+            alert('Your browser doesn\'t support folder picking. Please enter the path manually in the text field.');
+            pathInput.removeAttribute('readonly');
+            pathInput.focus();
+        }
+    }
+
     // File Picker Functionality
     document.addEventListener('DOMContentLoaded', function () {
         const folderPickerBtn = document.getElementById('folderPickerBtn');
@@ -1050,21 +1096,14 @@
         // Check if browser supports directory picker
         const supportsDirectoryPicker = 'webkitdirectory' in document.createElement('input');
 
+        // Check support on load
         if (!supportsDirectoryPicker) {
             folderPickerBtn.textContent = '📁 Browse (Limited Support)';
             folderPickerBtn.title = 'Your browser has limited folder picker support. Please use the text input.';
+            pathInput.removeAttribute('readonly');
         }
 
-        // Handle folder picker button click
-        folderPickerBtn.addEventListener('click', function () {
-            if (supportsDirectoryPicker) {
-                folderPicker.click();
-            } else {
-                // Fallback for browsers without directory support
-                alert('Your browser doesn\'t support folder picking. Please enter the path manually in the text field.');
-                pathInput.focus();
-            }
-        });
+
 
         // Handle folder selection
         folderPicker.addEventListener('change', function (e) {

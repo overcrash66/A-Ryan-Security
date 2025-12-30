@@ -178,10 +178,15 @@ def status():
             ]
             
             # Run tasks sequentially
+            # Execute scans and cache individual results for API
             for func, key in scan_tasks:
                 try:
-                    data[key] = func()
-                    logging.info(f"Completed scan for {key}")
+                    result = func()
+                    data[key] = result
+                    # Cache individual results to speed up subsequent API calls
+                    cache_key = f"{key}_status"
+                    cache.set(cache_key, result, timeout=300)
+                    logging.info(f"Completed scan for {key} and cached as {cache_key}")
                 except Exception as e:
                     logging.error(f"Scan failed for {key}: {e}")
                     data[key] = {'error': str(e)}
@@ -225,7 +230,7 @@ def set_scan_path():
 
 # Update API endpoints with proper context handling
 @bp.route('/api/status/vulns')
-@login_required
+@jwt_or_api_key_required
 def api_status_vulns():
     try:
         vulns_data = cache.get('vulns_status')
@@ -876,6 +881,7 @@ def create_system_logs(data):
 
 # API endpoints for async status loading
 @bp.route('/api/status/av')
+
 @jwt_or_api_key_required
 def api_status_av():
     try:
@@ -887,6 +893,7 @@ def api_status_av():
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 @bp.route('/api/status/fw')
+
 @jwt_or_api_key_required
 def api_status_fw():
     try:
@@ -899,6 +906,7 @@ def api_status_fw():
 
 
 @bp.route('/api/status/net')
+
 @jwt_or_api_key_required
 def api_status_net():
     try:
