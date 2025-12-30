@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 # Add the parent directory to the Python path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from vuln_checker import scan_vulnerabilities
+from security_modules.vuln_checker import scan_vulnerabilities
 from models import Issue, User, db
 
 @patch('subprocess.run')

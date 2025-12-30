@@ -1,8 +1,9 @@
-from web_interface.app import app
+from web_interface import create_app
 from models import db, User
 from datetime import datetime, timedelta
 
 def init_database():
+    app = create_app()
     with app.app_context():
         # Create all tables
         db.create_all()

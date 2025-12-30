@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import jsonify, request, current_app
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
+from flask_login import current_user
 from models import User, db, AuditLog
 from datetime import datetime
 
@@ -45,7 +46,18 @@ def api_key_required(fn):
 def jwt_or_api_key_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        # First try API key
+        # First try Flask-Login session (for Web UI)
+        # First try Flask-Login session (for Web UI)
+        # First try Flask-Login session (for Web UI)
+        # First try Flask-Login session (for Web UI)
+        try:
+            if current_user.is_authenticated:
+                return fn(*args, **kwargs)
+        except Exception:
+            # Fallback if session check fails (e.g. no context or login manager)
+            pass
+
+        # Then try API key
         api_key = request.headers.get('X-API-Key')
         if api_key:
             user = User.query.filter_by(api_key=api_key).first()
@@ -57,9 +69,9 @@ def jwt_or_api_key_required(fn):
         try:
             verify_jwt_in_request()
             user_id = get_jwt_identity()
-            current_user = User.query.get(int(user_id)) if user_id else None
-            if current_user:
-                log_api_access(current_user.id, request.endpoint, 200)
+            jwt_user = User.query.get(int(user_id)) if user_id else None
+            if jwt_user:
+                log_api_access(jwt_user.id, request.endpoint, 200)
                 return fn(*args, **kwargs)
         except Exception as e:
             current_app.logger.error(f"JWT verification failed: {e}")

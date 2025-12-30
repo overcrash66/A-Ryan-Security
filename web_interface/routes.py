@@ -1,29 +1,29 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, g
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, session, current_app, send_from_directory, abort, make_response
 from urllib.parse import urlparse, urljoin
 from cache import cache
 from flask_bootstrap import Bootstrap
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity
 from datetime import timedelta
-from scan_protection import block_scanners
+from security_modules.scan_protection import block_scanners
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, emit
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Length
+from wtforms import StringField, PasswordField, SubmitField, BooleanField
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 from config import Config
 from models import db, User, Log, Issue, AuditLog, ScanHistory
 from middleware import create_limiter, audit_log, require_admin, validate_input, cache_response
 from web_interface.auth import jwt_or_api_key_required, api_key_required, admin_required
-from antivirus import extra_antivirus_layer
-from firewall import check_firewall_status, list_rules
-from vuln_checker import scan_vulnerabilities
-from network_analyzer import scan_network, analyze_traffic
-from ai_integration import get_ai_advice, predict_threats, get_comprehensive_ai_analysis
+from security_modules.antivirus import extra_antivirus_layer
+from security_modules.firewall import check_firewall_status, list_rules
+from security_modules.vuln_checker import scan_vulnerabilities
+from security_modules.network_analyzer import scan_network, analyze_traffic
+from security_modules.ai_integration import get_ai_advice, predict_threats, get_comprehensive_ai_analysis
 from reports import generate_pdf_report
-from process_scanner import scan_running_processes, get_system_services, get_startup_programs
+from security_modules.process_scanner import scan_running_processes, get_system_services, get_startup_programs
 import threading
 import time
 import logging
@@ -40,70 +40,40 @@ import ipaddress
 import requests
 from urllib.parse import quote
 from web_interface.performance_optimizer import performance_monitor, performance_cache, optimize_database_queries
-from flask import make_response
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
-from flask import current_app
+from flask import g
+
+from logging.handlers import RotatingFileHandler
+
+from . import socketio, login_manager, csrf, bootstrap, migrate
+
+# Create Blueprint
+bp = Blueprint('main', __name__)
+
+# Initialize Cache (needs app bound later or use simple cache for now if not attached)
+# Cache typically needs app. For now we can assume it works or we need to init it in create_app too.
+# But existing code uses cache object decorator.
+# Let's import cache from items_per_page or whereever?
+# No, app.py initialized cache: cache = Cache(config={'CACHE_TYPE': 'simple'})
+# We should move Cache to __init__.py too?
+# For now, let's keep cache here but init with no app?
+# Or better, move cache to __init__.py and import it.
+
+# Let's assume we move cache to __init__.py later. For now, create it here but bind to current_app?
+# Flask-Caching can be initialized with app later.
+# The `cache` object is already imported from `cache.py` which is initialized in `__init__.py`.
+# So, no need to re-initialize it here.
+
+# Configure logging (moved to main.py or create_app)
+# This section is commented out in the instruction, implying it's handled elsewhere.
 
 # Initialize Flask app with security headers
-app = Flask(__name__)
-app.config.from_object(Config)
 
-# Configure JWT
-app.config['JWT_SECRET_KEY'] = app.config['SECRET_KEY']
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
-app.config['JWT_TOKEN_LOCATION'] = ['headers']
-app.config['JWT_HEADER_NAME'] = 'Authorization'
-app.config['JWT_HEADER_TYPE'] = 'Bearer'
-jwt = JWTManager(app)
 
 # Import and initialize extensions in correct order
-from models import db
-db.init_app(app)
-
-# Initialize cache
-from cache import init_cache
-init_cache(app)
-
-# Initialize mail if configured
-if app.config.get('MAIL_SERVER'):
-    from flask_mail import Mail
-    mail = Mail(app)
-
-# Initialize API maintenance scheduler
-if not app.config.get('TESTING'):
-    from apscheduler.schedulers.background import BackgroundScheduler
-    from web_interface.api_maintenance import check_expiring_api_keys, cleanup_expired_api_keys
-    
-    scheduler = BackgroundScheduler()
-    # Check for expiring keys daily at midnight
-    scheduler.add_job(check_expiring_api_keys, 'cron', hour=0)
-    # Clean up expired keys daily at 1 AM
-    scheduler.add_job(cleanup_expired_api_keys, 'cron', hour=1)
-    scheduler.start()
-
-# Initialize tables only if not in testing mode
-if not app.config.get('TESTING'):
-    with app.app_context():
-        db.create_all()
-
-# Security middleware
-csrf = CSRFProtect(app)
-limiter = create_limiter(app)
-migrate = Migrate(app, db)
-Bootstrap(app)
-socketio = SocketIO(
-    app,
-    async_mode='threading',
-    engineio_logger=True,
-    cors_allowed_origins="*",
-    logger=True
-)
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-#login_manager.session_protection = 'strong'
+# Extensions are initialized in __init__.py and imported
+from . import socketio, login_manager, csrf, bootstrap, migrate, limiter
 
 # Login form
 class LoginForm(FlaskForm):
@@ -135,59 +105,53 @@ from contextlib import contextmanager
 def safe_app_context():
     """Context manager to safely handle Flask app context operations."""
     try:
-        if not current_app:
-            with app.app_context():
-                yield app
-        else:
+        if current_app:
             yield current_app
+        else:
+            raise RuntimeError("No active application context")
     except RuntimeError as e:
         if "outside of application context" in str(e):
-            with app.app_context():
-                yield app
+             raise RuntimeError("No active application context")
         else:
             raise
     except Exception as e:
-        app.logger.error(f"Error in safe app context: {e}")
+        # Log error using print as fallback if current_app logger is unavailable 
+        # (though current_app would be available if we yielded it)
+        print(f"Error in safe app context: {e}")
         yield None
 
 def safe_vulnerability_scan(scan_path=None, save_history=True):
     """Thread-safe vulnerability scanning with proper context handling."""
     try:
-        # Import here to avoid circular imports
-        from vuln_checker import scan_vulnerabilities
-        
         # Use app context for the scan
         with safe_app_context() as context_app:
             if context_app:
                 return scan_vulnerabilities(scan_path=scan_path, save_history=save_history)
             else:
-                app.logger.warning("No app context available for vulnerability scan")
+                current_app.logger.warning("No app context available for vulnerability scan")
                 return scan_vulnerabilities(scan_path=scan_path, save_history=False)
     except Exception as e:
-        app.logger.error(f"Error in safe vulnerability scan: {e}")
+        current_app.logger.error(f"Error in safe vulnerability scan: {e}")
         # Fallback to basic scan without history
-        from vuln_checker import scan_vulnerabilities
         return scan_vulnerabilities(scan_path=scan_path, save_history=False)
 
 def safe_network_analysis(count=5):
     """Thread-safe network analysis."""
     try:
-        from network_analyzer import analyze_traffic
         return analyze_traffic(count=count)
     except Exception as e:
-        app.logger.error(f"Error in network analysis: {e}")
+        current_app.logger.error(f"Error in network analysis: {e}")
         return []
 
 def safe_process_scan():
     """Thread-safe process scanning."""
     try:
-        from process_scanner import scan_running_processes
         return scan_running_processes()
     except Exception as e:
-        app.logger.error(f"Error in process scan: {e}")
+        current_app.logger.error(f"Error in process scan: {e}")
         return {'error': str(e)}
 
-@app.route('/status')
+@bp.route('/status')
 @login_required
 @cache_response(timeout=300)  # Reduced timeout for more frequent refreshes
 def status():
@@ -214,10 +178,15 @@ def status():
             ]
             
             # Run tasks sequentially
+            # Execute scans and cache individual results for API
             for func, key in scan_tasks:
                 try:
-                    data[key] = func()
-                    logging.info(f"Completed scan for {key}")
+                    result = func()
+                    data[key] = result
+                    # Cache individual results to speed up subsequent API calls
+                    cache_key = f"{key}_status"
+                    cache.set(cache_key, result, timeout=300)
+                    logging.info(f"Completed scan for {key} and cached as {cache_key}")
                 except Exception as e:
                     logging.error(f"Scan failed for {key}: {e}")
                     data[key] = {'error': str(e)}
@@ -248,7 +217,7 @@ def status():
     
     return render_template('status.html', data=data, advice=advice)
 
-@app.route('/set_scan_path', methods=['POST'])
+@bp.route('/set_scan_path', methods=['POST'])
 @login_required
 def set_scan_path():
     scan_path = request.form.get('scan-path')
@@ -257,11 +226,11 @@ def set_scan_path():
         flash('Scan folder set successfully!', 'success')
     else:
         flash('Invalid folder path.', 'error')
-    return redirect(url_for('status'))
+    return redirect(url_for('main.status'))
 
 # Update API endpoints with proper context handling
-@app.route('/api/status/vulns')
-@login_required
+@bp.route('/api/status/vulns')
+@jwt_or_api_key_required
 def api_status_vulns():
     try:
         vulns_data = cache.get('vulns_status')
@@ -280,10 +249,10 @@ def api_status_vulns():
             
         return jsonify({'status': 'success', 'data': {'vulns': vulns_data, 'osv': osv_data}})
     except Exception as e:
-        app.logger.error(f"Error getting vulnerability data: {e}")
+        current_app.logger.error(f"Error getting vulnerability data: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/status/traffic')
+@bp.route('/api/status/traffic')
 @login_required
 def api_status_traffic():
     try:
@@ -294,10 +263,10 @@ def api_status_traffic():
         
         return jsonify({'status': 'success', 'data': traffic_data})
     except Exception as e:
-        app.logger.error(f"Error getting traffic data: {e}")
+        current_app.logger.error(f"Error getting traffic data: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/status/processes')
+@bp.route('/api/status/processes')
 @login_required
 def api_status_processes():
     try:
@@ -308,10 +277,10 @@ def api_status_processes():
         
         return jsonify({'status': 'success', 'data': processes})
     except Exception as e:
-        app.logger.error(f"Error getting process data: {e}")
+        current_app.logger.error(f"Error getting process data: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/status/advice')
+@bp.route('/api/status/advice')
 @login_required
 def api_status_advice():
     try:
@@ -343,11 +312,11 @@ def api_status_advice():
         advice = get_ai_advice(all_data)
         return jsonify({'status': 'success', 'data': advice})
     except Exception as e:
-        app.logger.error(f"Error getting AI advice: {e}")
+        current_app.logger.error(f"Error getting AI advice: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 # Update custom scan route with proper context handling
-@app.route('/custom_scan', methods=['GET', 'POST'])
+@bp.route('/custom_scan', methods=['GET', 'POST'])
 @login_required
 @block_scanners
 def custom_scan():
@@ -372,7 +341,7 @@ def custom_scan():
             return render_template('custom_scan.html', preferred_scan_path=preferred_scan_path)
         
         try:
-            app.logger.info(f"Starting custom scan of {scan_path} by user {current_user.username}")
+            current_app.logger.info(f"Starting custom scan of {scan_path} by user {current_user.username}")
             
             # Use safe vulnerability scan with proper context
             #vulns_data, osv_data = safe_vulnerability_scan(scan_path=scan_path, save_history=True)
@@ -384,13 +353,13 @@ def custom_scan():
             
             # Save this as the user's preferred scan path for future scans
             session['preferred_scan_path'] = scan_path
-            app.logger.info(f"Saved {scan_path} as user's preferred scan path")
+            current_app.logger.info(f"Saved {scan_path} as user's preferred scan path")
             
             flash(f'Scan completed for: {scan_path}', 'success')
-            return redirect(url_for('custom_scan_results'))
+            return redirect(url_for('main.custom_scan_results'))
             
         except Exception as e:
-            app.logger.error(f"Error during custom scan: {e}")
+            current_app.logger.error(f"Error during custom scan: {e}")
             flash(f'Error during scan: {str(e)}', 'error')
             preferred_scan_path = session.get('preferred_scan_path', '')
             return render_template('custom_scan.html', preferred_scan_path=preferred_scan_path)
@@ -400,20 +369,20 @@ def custom_scan():
     return render_template('custom_scan.html', preferred_scan_path=preferred_scan_path)
 
 @csrf.exempt
-@app.route('/set_scan_folder', methods=['POST'])
+@bp.route('/set_scan_folder', methods=['POST'])
 @login_required
 @block_scanners
 def set_scan_folder():
     """Set the preferred scan folder with enhanced validation."""
     scan_path = request.form.get('scan_path', '').strip()
     
-    app.logger.info(f"set_scan_folder called by user {current_user.username}")
-    app.logger.info(f"Received scan_path: '{scan_path}'")
+    current_app.logger.info(f"set_scan_folder called by user {current_user.username}")
+    current_app.logger.info(f"Received scan_path: '{scan_path}'")
     
     if not scan_path:
-        app.logger.warning("Empty scan path provided")
+        current_app.logger.warning("Empty scan path provided")
         flash('Please provide a valid scan path', 'error')
-        return redirect(url_for('status'))
+        return redirect(url_for('main.status'))
     
     # Enhanced path validation
     try:
@@ -422,15 +391,15 @@ def set_scan_folder():
         
         # Check if path exists
         if not os.path.exists(normalized_path):
-            app.logger.warning(f"Path does not exist: {normalized_path}")
+            current_app.logger.warning(f"Path does not exist: {normalized_path}")
             flash(f'Path does not exist: {normalized_path}', 'error')
-            return redirect(url_for('status'))
+            return redirect(url_for('main.status'))
         
         # Check if path is accessible
         if not os.access(normalized_path, os.R_OK):
-            app.logger.warning(f"Cannot access path: {normalized_path}")
+            current_app.logger.warning(f"Cannot access path: {normalized_path}")
             flash(f'Cannot access path (permission denied): {normalized_path}', 'error')
-            return redirect(url_for('status'))
+            return redirect(url_for('main.status'))
         
         # Additional security check - prevent scanning of sensitive system directories
         sensitive_paths = [
@@ -444,58 +413,38 @@ def set_scan_folder():
         
         for sensitive_path in sensitive_paths:
             if normalized_path.lower().startswith(sensitive_path.lower()):
-                app.logger.warning(f"Attempted to set sensitive system path: {normalized_path}")
+                current_app.logger.warning(f"Attempted to set sensitive system path: {normalized_path}")
                 flash(f'Cannot scan sensitive system directory: {normalized_path}', 'warning')
-                return redirect(url_for('status'))
+                return redirect(url_for('main.status'))
         
         # Save the validated path
         session['preferred_scan_path'] = normalized_path
-        app.logger.info(f"Successfully set preferred scan path to: {normalized_path}")
+        current_app.logger.info(f"Successfully set preferred scan path to: {normalized_path}")
         
         # Clear cached vulnerability data to force refresh with new path
         cache.delete('vulns_status')
         cache.delete('osv_status')
-        app.logger.info("Cleared vulnerability cache to force refresh")
+        current_app.logger.info("Cleared vulnerability cache to force refresh")
         
         flash(f'Scan folder set to: {normalized_path}', 'success')
         
     except Exception as e:
-        app.logger.error(f"Error setting scan folder: {e}")
+        current_app.logger.error(f"Error setting scan folder: {e}")
         flash(f'Error setting scan folder: {str(e)}', 'error')
     
-    return redirect(url_for('status'))
+    return redirect(url_for('main.status'))
 
 # Add thread cleanup function
-def cleanup_background_tasks():
-    """Clean up background tasks and threads on application shutdown."""
-    try:
-        # Stop the scheduler if it's running
-        if scheduler.running:
-            scheduler.shutdown(wait=True)
-            app.logger.info("Background scheduler stopped")
-        
-        # Clear cache
-        try:
-            cache.clear()
-            app.logger.info("Cache cleared")
-        except Exception:
-            pass
-            
-    except Exception as e:
-        app.logger.error(f"Error during cleanup: {e}")
 
-# Register cleanup function
-import atexit
-atexit.register(cleanup_background_tasks)
 
 # Enhanced error handler for context issues
-@app.errorhandler(RuntimeError)
+@bp.app_errorhandler(RuntimeError)
 def handle_runtime_error(error):
     """Handle runtime errors, especially context-related ones."""
     error_msg = str(error)
     
     if "outside of application context" in error_msg or "outside of request context" in error_msg:
-        app.logger.error(f"Context error: {error_msg}")
+        current_app.logger.error(f"Context error: {error_msg}")
         
         # Try to provide a user-friendly error page
         return render_template('error.html', error={
@@ -509,24 +458,20 @@ def handle_runtime_error(error):
 
 #old
 # Performance monitoring hooks
-@app.before_request
+@bp.before_request
 def before_request():
     performance_monitor.start_request_timer()
 
-# Security headers and performance monitoring
-# Ensure correct MIME type for JS
-app.config['MIME_TYPES'] = {
-    '.js': 'application/javascript'
-}
+
 
 import mimetypes
 from flask import send_from_directory
 
 mimetypes.add_type('application/javascript', '.js')
 
-@app.route('/static/<path:filename>')
+@bp.route('/static/<path:filename>')
 def custom_static(filename):
-    response = send_from_directory(app.static_folder, filename)
+    response = send_from_directory(current_app.static_folder, filename)
     if filename.endswith('.js'):
         response.mimetype = 'application/javascript'
     return response
@@ -546,7 +491,7 @@ def get_user_timezone():
     # Default to America/Halifax (from environment details)
     return pytz.timezone('America/Halifax')
 
-@app.template_filter('local_datetime')
+@bp.app_template_filter('local_datetime')
 def local_datetime_filter(utc_dt):
     """Convert UTC datetime to local datetime for display."""
     if utc_dt is None:
@@ -562,7 +507,7 @@ def local_datetime_filter(utc_dt):
     
     return local_dt.strftime('%Y-%m-%d %H:%M:%S %Z')
 
-@app.template_filter('local_date')
+@bp.app_template_filter('local_date')
 def local_date_filter(utc_dt):
     """Convert UTC datetime to local date for display."""
     if utc_dt is None:
@@ -578,7 +523,7 @@ def local_date_filter(utc_dt):
     
     return local_dt.strftime('%Y-%m-%d %H:%M')
 
-@app.template_filter('current_time')
+@bp.app_template_filter('current_time')
 def current_time_filter(dummy=None):
     """Get current local time for display."""
     local_tz = get_user_timezone()
@@ -590,7 +535,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # API Authentication endpoints
-@app.route('/api/auth/login', methods=['POST'])
+@bp.route('/api/auth/login', methods=['POST'])
 def api_login():
     """Login endpoint for API access."""
     data = request.get_json()
@@ -646,7 +591,7 @@ def api_login():
     
     return jsonify({"msg": "Invalid username or password"}), 401
 
-@app.route('/api/auth/token', methods=['POST'])
+@bp.route('/api/auth/token', methods=['POST'])
 @jwt_or_api_key_required
 def generate_api_key():
     """Generate or regenerate API key."""
@@ -685,31 +630,31 @@ def generate_api_key():
         "expires_at": user.api_key_expires_at.isoformat() if user.api_key_expires_at else None
     })
 
-@app.route('/login', methods=['GET', 'POST'])
+@bp.route('/login', methods=['GET', 'POST'])
 @block_scanners
 def login():
-    app.logger.debug(f"Accessing /login route, method: {request.method}")
+    current_app.logger.debug(f"Accessing /login route, method: {request.method}")
     form = LoginForm()
     if form.validate_on_submit():
-        app.logger.debug(f"Login form validated for username: {form.username.data}")
+        current_app.logger.debug(f"Login form validated for username: {form.username.data}")
         username = form.username.data.strip()
         password = form.password.data
         
         if not username or not password:
             flash('Please provide both username and password', 'error')
-            app.logger.warning("Login failed: Missing username or password")
+            current_app.logger.warning("Login failed: Missing username or password")
             return render_template('login.html', form=form), 400
             
         user = User.query.filter_by(username=username).first()
         if not user:
-            app.logger.error(f"No user found for username: {username}")
+            current_app.logger.error(f"No user found for username: {username}")
         
         # Get failed attempts from cache
         failed_attempts = cache.get(f'login_attempts_{username}') or 0
         
         if failed_attempts >= 5:
             flash('Account temporarily locked. Please try again later or contact support.', 'error')
-            app.logger.warning(f"Account locked for {username}: Too many failed attempts")
+            current_app.logger.warning(f"Account locked for {username}: Too many failed attempts")
             return render_template('login.html', form=form), 429
             
         if user and user.check_password(password):
@@ -719,59 +664,59 @@ def login():
             # Check if password change required
             if user.password_change_required:
                 flash('Your password must be changed before proceeding.', 'warning')
-                app.logger.info(f"Redirecting {username} to change_password")
-                return redirect(url_for('change_password'))
+                current_app.logger.info(f"Redirecting {username} to change_password")
+                return redirect(url_for('main.change_password'))
             
             login_user(user, duration=timedelta(hours=1))
-            app.logger.info(f"Successful login for {username}, session: {session}")
+            current_app.logger.info(f"Successful login for {username}, session: {session}")
             
             next_page = request.args.get('next')
             if next_page:
-                app.logger.info(f"Redirecting to {next_page}, Safe: {url_is_safe(next_page)}")
+                current_app.logger.info(f"Redirecting to {next_page}, Safe: {url_is_safe(next_page)}")
             if next_page and url_is_safe(next_page):
                 return redirect(next_page)
-            app.logger.debug("Redirecting to index")
-            return redirect(url_for('index'))
+            current_app.logger.debug("Redirecting to index")
+            return redirect(url_for('main.index'))
         else:
             failed_attempts += 1
             cache.set(f'login_attempts_{username}', failed_attempts, timeout=300)
             flash('Invalid username or password', 'error')
-            app.logger.info(f"Failed login for {username}: incorrect password or user not found")
+            current_app.logger.info(f"Failed login for {username}: incorrect password or user not found")
             return render_template('login.html', form=form)
     elif request.method == 'POST':
-        app.logger.warning(f"Login form validation failed: {form.errors}")
+        current_app.logger.warning(f"Login form validation failed: {form.errors}")
         flash('Invalid form submission. Please check your input.', 'error')
     
-    app.logger.debug("Rendering login.html for GET request")
+    current_app.logger.debug("Rendering login.html for GET request")
     return render_template('login.html', form=form)
 
-@app.route('/logout')
+@bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('You have been logged out.', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
 
-@app.route('/change_password', methods=['GET', 'POST'])
+@bp.route('/change_password', methods=['GET', 'POST'])
 @block_scanners
 @login_required
 def change_password():
-    app.logger.debug("Accessing /change_password route")
+    current_app.logger.debug("Accessing /change_password route")
     form = ChangePasswordForm()
     if form.validate_on_submit():
-        app.logger.debug("Change password form validated")
+        current_app.logger.debug("Change password form validated")
         current_password = form.current_password.data
         new_password = form.new_password.data
         confirm_password = form.confirm_password.data
         
         # Enhanced logging for debugging
-        app.logger.info(f"Password change attempt by user: {current_user.username}")
-        app.logger.debug(f"Current password length: {len(current_password)}")
-        app.logger.debug(f"New password length: {len(new_password)}")
+        current_app.logger.info(f"Password change attempt by user: {current_user.username}")
+        current_app.logger.debug(f"Current password length: {len(current_password)}")
+        current_app.logger.debug(f"New password length: {len(new_password)}")
         
         if new_password != confirm_password:
             flash('New passwords do not match', 'error')
-            app.logger.warning("Change password failed: Passwords do not match")
+            current_app.logger.warning("Change password failed: Passwords do not match")
             return render_template('change_password.html', form=form), 400
             
         user = current_user
@@ -779,21 +724,21 @@ def change_password():
         # CRITICAL FIX: Check if current password verification fails
         if not user.check_password(current_password):
             flash('Current password is incorrect', 'error')
-            app.logger.warning(f"Change password failed: Incorrect current password for user {user.username}")
+            current_app.logger.warning(f"Change password failed: Incorrect current password for user {user.username}")
             return render_template('change_password.html', form=form), 400
         
-        app.logger.info(f"Current password verified successfully for user {user.username}")
+        current_app.logger.info(f"Current password verified successfully for user {user.username}")
         
         # Check if new password is same as current (prevent reuse)
         if user.check_password(new_password):
             flash('New password must be different from current password', 'error')
-            app.logger.warning("Change password failed: New password same as current")
+            current_app.logger.warning("Change password failed: New password same as current")
             return render_template('change_password.html', form=form), 400
         
         # Validate password complexity
         if len(new_password) < 12:
             flash('Password must be at least 12 characters long', 'error')
-            app.logger.warning(f"Change password failed: Password too short ({len(new_password)} chars)")
+            current_app.logger.warning(f"Change password failed: Password too short ({len(new_password)} chars)")
             return render_template('change_password.html', form=form), 400
         
         # Additional complexity checks
@@ -804,11 +749,11 @@ def change_password():
         
         if not (has_upper and has_lower and has_digit and has_special):
             flash('Password must contain uppercase, lowercase, digit, and special character (!@#$%^&*)', 'error')
-            app.logger.warning("Change password failed: Password complexity requirements not met")
+            current_app.logger.warning("Change password failed: Password complexity requirements not met")
             return render_template('change_password.html', form=form), 400
             
         try:
-            app.logger.info(f"Attempting to set new password for user {user.username}")
+            current_app.logger.info(f"Attempting to set new password for user {user.username}")
             user.set_password(new_password)
             user.password_change_required = False
             user.last_password_change = datetime.utcnow()
@@ -824,33 +769,33 @@ def change_password():
             
             # Commit the transaction
             db.session.commit()
-            app.logger.info(f"Password change transaction committed successfully for user {user.username}")
+            current_app.logger.info(f"Password change transaction committed successfully for user {user.username}")
             
             flash('Password changed successfully', 'success')
-            return redirect(url_for('index'))
+            return redirect(url_for('main.index'))
             
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f"Error changing password for user {user.username}: {e}")
+            current_app.logger.error(f"Error changing password for user {user.username}: {e}")
             flash('Internal error during password change. Please try again.', 'error')
             return render_template('change_password.html', form=form), 500
     elif request.method == 'POST':
-        app.logger.warning(f"Change password form validation failed: {form.errors}")
+        current_app.logger.warning(f"Change password form validation failed: {form.errors}")
         flash('Invalid form submission. Please check your input.', 'error')
     
-    app.logger.debug("Rendering change_password.html for GET request")
+    current_app.logger.debug("Rendering change_password.html for GET request")
     return render_template('change_password.html', form=form)
 
-@app.route('/')
+@bp.route('/')
 @block_scanners
 @login_required
 def index():
-    app.logger.debug("Accessing /index route")
-    if current_user.password_change_required and request.path != url_for('change_password'):
+    current_app.logger.debug("Accessing /index route")
+    if current_user.password_change_required and request.path != url_for('main.change_password'):
         flash('Please change your password', 'warning')
-        app.logger.info(f"Redirecting {current_user.username} to change_password from index")
-        return redirect(url_for('change_password'))
-    app.logger.debug("Rendering index.html")
+        current_app.logger.info(f"Redirecting {current_user.username} to change_password from index")
+        return redirect(url_for('main.change_password'))
+    current_app.logger.debug("Rendering index.html")
     return render_template('index.html')
 
 def create_system_logs(data):
@@ -928,14 +873,15 @@ def create_system_logs(data):
         
         # Commit all log entries
         db.session.commit()
-        app.logger.info("DEBUG: Created system log entries for AI analysis")
+        current_app.logger.info("DEBUG: Created system log entries for AI analysis")
         
     except Exception as e:
-        app.logger.error(f"Error creating system logs: {e}")
+        current_app.logger.error(f"Error creating system logs: {e}")
         db.session.rollback()
 
 # API endpoints for async status loading
-@app.route('/api/status/av')
+@bp.route('/api/status/av')
+
 @jwt_or_api_key_required
 def api_status_av():
     try:
@@ -943,10 +889,11 @@ def api_status_av():
         cache.set('av_status', av_data, timeout=300)
         return jsonify({'status': 'success', 'data': av_data})
     except Exception as e:
-        app.logger.error(f"Error getting AV status: {e}")
+        current_app.logger.error(f"Error getting AV status: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/status/fw')
+@bp.route('/api/status/fw')
+
 @jwt_or_api_key_required
 def api_status_fw():
     try:
@@ -954,11 +901,12 @@ def api_status_fw():
         cache.set('fw_status', fw_data, timeout=300)
         return jsonify({'status': 'success', 'data': fw_data})
     except Exception as e:
-        app.logger.error(f"Error getting firewall status: {e}")
+        current_app.logger.error(f"Error getting firewall status: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
-@app.route('/api/status/net')
+@bp.route('/api/status/net')
+
 @jwt_or_api_key_required
 def api_status_net():
     try:
@@ -966,10 +914,10 @@ def api_status_net():
         cache.set('net_status', net_data, timeout=300)
         return jsonify({'status': 'success', 'data': net_data})
     except Exception as e:
-        app.logger.error(f"Error getting network data: {e}")
+        current_app.logger.error(f"Error getting network data: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/history/logs')
+@bp.route('/api/history/logs')
 @login_required
 def api_history_logs():
     try:
@@ -985,10 +933,10 @@ def api_history_logs():
         } for log in logs]
         return jsonify({'status': 'success', 'data': logs_data})
     except Exception as e:
-        app.logger.error(f"Error getting logs: {e}")
+        current_app.logger.error(f"Error getting logs: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/history/issues')
+@bp.route('/api/history/issues')
 @login_required
 def api_history_issues():
     try:
@@ -1002,10 +950,10 @@ def api_history_issues():
         } for issue in issues]
         return jsonify({'status': 'success', 'data': issues_data})
     except Exception as e:
-        app.logger.error(f"Error getting issues: {e}")
+        current_app.logger.error(f"Error getting issues: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/history/predictions')
+@bp.route('/api/history/predictions')
 @login_required
 def api_history_predictions():
     try:
@@ -1020,10 +968,10 @@ def api_history_predictions():
             predictions = "No logs available for analysis."
         return jsonify({'status': 'success', 'data': predictions})
     except Exception as e:
-        app.logger.error(f"Error getting predictions: {e}")
+        current_app.logger.error(f"Error getting predictions: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/history/scan_history')
+@bp.route('/api/history/scan_history')
 @login_required
 def api_history_scan_history():
     try:
@@ -1041,15 +989,15 @@ def api_history_scan_history():
             } for scan in scans]
         return jsonify({'status': 'success', 'data': scan_history})
     except Exception as e:
-        app.logger.error(f"Error getting scan history: {e}")
+        current_app.logger.error(f"Error getting scan history: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/status/batch')
+@bp.route('/api/status/batch')
 @login_required
 def api_status_batch():
     """Batch API endpoint to get all status data in one request for better performance."""
     try:
-        app.logger.info("Batch status API called - optimized performance")
+        current_app.logger.info("Batch status API called - optimized performance")
         
         # Get all cached data first
         av = cache.get('av_status')
@@ -1102,15 +1050,15 @@ def api_status_batch():
         return jsonify({'status': 'success', 'data': batch_data})
         
     except Exception as e:
-        app.logger.error(f"Error in batch status API: {e}")
+        current_app.logger.error(f"Error in batch status API: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/history/batch')
+@bp.route('/api/history/batch')
 @login_required
 def api_history_batch():
     """Batch API endpoint to get all history data in one request."""
     try:
-        app.logger.info("Batch history API called - optimized performance")
+        current_app.logger.info("Batch history API called - optimized performance")
         
         # Get cached data first
         logs = cache.get('history_logs')
@@ -1180,15 +1128,15 @@ def api_history_batch():
         return jsonify({'status': 'success', 'data': batch_data})
         
     except Exception as e:
-        app.logger.error(f"Error in batch history API: {e}")
+        current_app.logger.error(f"Error in batch history API: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/history')
+@bp.route('/history')
 @block_scanners
 @login_required
 @performance_cache(timeout=120)  # Cache history page for 2 minutes
 def history():
-    app.logger.debug("Accessing /history route")
+    current_app.logger.debug("Accessing /history route")
     
     # Use cached data for better performance
     logs = cache.get('history_logs')
@@ -1218,14 +1166,14 @@ def history():
         scan_history = ScanHistory.query.filter_by(user_id=current_user.id).order_by(ScanHistory.timestamp.desc()).limit(20).all()
         cache.set(f'scan_history_{current_user.id}', scan_history, timeout=240000)
     
-    app.logger.debug("Rendering history.html")
+    current_app.logger.debug("Rendering history.html")
     return render_template('history.html', logs=logs or [], issues=issues or [], predictions=predictions, scan_history=scan_history or [])
     #return render_template('history.html')
 
-@app.route('/report')
+@bp.route('/report')
 @login_required
 def report():
-    app.logger.debug("Accessing /report route")
+    current_app.logger.debug("Accessing /report route")
     
     # Get current data for the report
     av = cache.get('av_status') or extra_antivirus_layer()
@@ -1237,10 +1185,10 @@ def report():
         # Check if user has set a preferred scan path
         preferred_scan_path = session.get('preferred_scan_path')
         if preferred_scan_path:
-            app.logger.info(f"DEBUG: Report using user's preferred scan path: {preferred_scan_path}")
+            current_app.logger.info(f"DEBUG: Report using user's preferred scan path: {preferred_scan_path}")
             vulns_data, osv_data = scan_vulnerabilities(scan_path=preferred_scan_path)
         else:
-            app.logger.warning("DEBUG: /report route using default scan path (consider setting preferred path)")
+            current_app.logger.warning("DEBUG: /report route using default scan path (consider setting preferred path)")
             vulns_data, osv_data = scan_vulnerabilities()
     
     net = cache.get('net_status') or scan_network()
@@ -1261,14 +1209,14 @@ def report():
     
     filename = generate_pdf_report(data)
     if filename:
-        app.logger.debug(f"Rendering report.html with filename: {filename}")
+        current_app.logger.debug(f"Rendering report.html with filename: {filename}")
         return render_template('report.html', filename=filename)
     else:
         flash('Error generating report. Please try again later.', 'error')
-        app.logger.error("Failed to generate report")
-        return redirect(url_for('index'))
+        current_app.logger.error("Failed to generate report")
+        return redirect(url_for('main.index'))
 
-@app.route('/api/admin/users', methods=['GET'])
+@bp.route('/api/admin/users', methods=['GET'])
 @admin_required
 def api_admin_users():
     """Get all users (admin only)."""
@@ -1289,10 +1237,10 @@ def api_admin_users():
             } for user in users]
         })
     except Exception as e:
-        current_app.logger.error(f"Error getting users list: {e}")
+        current_current_app.logger.error(f"Error getting users list: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/admin/users/<int:user_id>', methods=['PUT'])
+@bp.route('/api/admin/users/<int:user_id>', methods=['PUT'])
 @admin_required
 def api_admin_update_user(user_id):
     """Update user details (admin only)."""
@@ -1337,10 +1285,10 @@ def api_admin_update_user(user_id):
         })
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Error updating user: {e}")
+        current_current_app.logger.error(f"Error updating user: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/admin')
+@bp.route('/admin')
 @login_required
 @require_admin
 def admin():
@@ -1353,7 +1301,7 @@ def admin():
         }), 403
     return render_template('index.html')
 
-@app.route('/issues', methods=['GET', 'POST'])
+@bp.route('/issues', methods=['GET', 'POST'])
 @login_required
 def issues():
     """Issues management route for testing."""
@@ -1384,7 +1332,7 @@ def issues():
             try:
                 db.session.commit()
                 flash('Issue created successfully', 'success')
-                return redirect(url_for('issues'))
+                return redirect(url_for('main.issues'))
             except Exception as e:
                 db.session.rollback()
                 flash('Error creating issue', 'error')
@@ -1396,7 +1344,7 @@ def issues():
     issues = Issue.query.all()
     return render_template('index.html')
 
-@app.route('/custom_scan_results')
+@bp.route('/custom_scan_results')
 @login_required
 @block_scanners
 def custom_scan_results():
@@ -1407,7 +1355,7 @@ def custom_scan_results():
     
     if vulns_data is None or osv_data is None:
         flash('No scan results available. Please run a scan first.', 'warning')
-        return redirect(url_for('custom_scan'))
+        return redirect(url_for('main.custom_scan'))
     
     data = {
         'vulns': vulns_data,
@@ -1417,14 +1365,14 @@ def custom_scan_results():
     
     return render_template('custom_scan_results.html', data=data)
 
-@app.route('/clear_preferred_path', methods=['POST'])
+@bp.route('/clear_preferred_path', methods=['POST'])
 @login_required
 def clear_preferred_path():
     """Clear the user's preferred scan path."""
     if 'preferred_scan_path' in session:
         old_path = session['preferred_scan_path']
         del session['preferred_scan_path']
-        app.logger.info(f"Cleared preferred scan path: {old_path}")
+        current_app.logger.info(f"Cleared preferred scan path: {old_path}")
         
         # Clear cached vulnerability data to force refresh with default path
         cache.delete('vulns_status')
@@ -1433,17 +1381,17 @@ def clear_preferred_path():
         flash('Preferred scan path cleared. Future scans will use default path.', 'info')
     else:
         flash('No preferred scan path was set.', 'info')
-    return redirect(url_for('status'))
+    return redirect(url_for('main.status'))
 
-@app.route('/debug/vuln_scan')
+@bp.route('/debug/vuln_scan')
 @login_required
 def debug_vuln_scan():
     """Debug route to test vulnerability scanning."""
-    app.logger.info("DEBUG: Manual vulnerability scan test initiated")
+    current_app.logger.info("DEBUG: Manual vulnerability scan test initiated")
     
     # Test with current directory (should be accessible)
     test_path = os.getcwd()
-    app.logger.info(f"DEBUG: Testing scan with accessible path: {test_path}")
+    current_app.logger.info(f"DEBUG: Testing scan with accessible path: {test_path}")
     
     try:
         vulns_data, osv_data = scan_vulnerabilities(scan_path=test_path)
@@ -1459,7 +1407,7 @@ def debug_vuln_scan():
             'osv_error': osv_data.get('error') if isinstance(osv_data, dict) and 'error' in osv_data else None
         }
         
-        app.logger.info(f"DEBUG: Scan test results: {debug_info}")
+        current_app.logger.info(f"DEBUG: Scan test results: {debug_info}")
         return jsonify(debug_info)
         
     except Exception as e:
@@ -1468,15 +1416,15 @@ def debug_vuln_scan():
             'test_path': test_path,
             'exception_type': type(e).__name__
         }
-        app.logger.error(f"DEBUG: Scan test failed: {error_info}")
+        current_app.logger.error(f"DEBUG: Scan test failed: {error_info}")
         return jsonify(error_info), 500
 
-@app.route('/process_scan')
+@bp.route('/process_scan')
 @login_required
 @block_scanners
 def process_scan():
     """Display detailed process scan results."""
-    app.logger.info("Accessing /process_scan route")
+    current_app.logger.info("Accessing /process_scan route")
     
     # Get fresh process scan data
     processes = scan_running_processes()
@@ -1501,12 +1449,12 @@ def process_scan():
     
     return render_template('process_scan.html', data=data)
 
-@app.route('/api/process_refresh', methods=['POST'])
+@bp.route('/api/process_refresh', methods=['POST'])
 @login_required
 def api_process_refresh():
     """API endpoint to refresh process scan data."""
     try:
-        app.logger.info("Refreshing process scan data via API")
+        current_app.logger.info("Refreshing process scan data via API")
         
         # Clear cached data
         cache.delete('process_status')
@@ -1532,7 +1480,7 @@ def api_process_refresh():
         })
         
     except Exception as e:
-        app.logger.error(f"Error refreshing process data: {e}")
+        current_app.logger.error(f"Error refreshing process data: {e}")
         return jsonify({
             'status': 'error',
             'message': f'Failed to refresh process data: {str(e)}'
@@ -1583,7 +1531,7 @@ def get_comprehensive_whois(ip_address):
             return ipinfo_data
             
     except Exception as e:
-        app.logger.error(f"Error in comprehensive whois lookup for {ip_address}: {e}")
+        current_app.logger.error(f"Error in comprehensive whois lookup for {ip_address}: {e}")
     
     return None
 
@@ -1636,9 +1584,9 @@ def get_ipapi_whois(ip_address):
         }
         
     except requests.RequestException as e:
-        app.logger.warning(f"ipapi.co lookup failed for {ip_address}: {e}")
+        current_app.logger.warning(f"ipapi.co lookup failed for {ip_address}: {e}")
     except Exception as e:
-        app.logger.error(f"Error in ipapi.co lookup for {ip_address}: {e}")
+        current_app.logger.error(f"Error in ipapi.co lookup for {ip_address}: {e}")
     
     return None
 
@@ -1691,9 +1639,9 @@ def get_ipapi_com_whois(ip_address):
         }
         
     except requests.RequestException as e:
-        app.logger.warning(f"ip-api.com lookup failed for {ip_address}: {e}")
+        current_app.logger.warning(f"ip-api.com lookup failed for {ip_address}: {e}")
     except Exception as e:
-        app.logger.error(f"Error in ip-api.com lookup for {ip_address}: {e}")
+        current_app.logger.error(f"Error in ip-api.com lookup for {ip_address}: {e}")
     
     return None
 
@@ -1750,9 +1698,9 @@ def get_ipinfo_whois(ip_address):
         }
         
     except requests.RequestException as e:
-        app.logger.warning(f"ipinfo.io lookup failed for {ip_address}: {e}")
+        current_app.logger.warning(f"ipinfo.io lookup failed for {ip_address}: {e}")
     except Exception as e:
-        app.logger.error(f"Error in ipinfo.io lookup for {ip_address}: {e}")
+        current_app.logger.error(f"Error in ipinfo.io lookup for {ip_address}: {e}")
     
     return None
 
@@ -1869,19 +1817,19 @@ def parse_whois_output(whois_text, ip_address):
             'status': 'parse_error'
         }
 
-@app.route('/whois')
+@bp.route('/whois')
 @login_required
 @block_scanners
 def whois_lookup():
     """Whois IP lookup page."""
     return render_template('whois.html')
 
-@app.route('/api/whois/<ip_address>')
+@bp.route('/api/whois/<ip_address>')
 @login_required
 def api_whois_lookup(ip_address):
     """API endpoint for whois lookup."""
     try:
-        app.logger.info(f"Whois lookup requested for IP: {ip_address}")
+        current_app.logger.info(f"Whois lookup requested for IP: {ip_address}")
         
         # Check cache first
         cache_key = f'whois_{ip_address}'
@@ -1910,10 +1858,10 @@ def api_whois_lookup(ip_address):
         return jsonify({'status': 'success', 'data': result, 'cached': False})
         
     except Exception as e:
-        app.logger.error(f"Error in whois lookup for {ip_address}: {e}")
+        current_app.logger.error(f"Error in whois lookup for {ip_address}: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/whois', methods=['POST'])
+@bp.route('/api/whois', methods=['POST'])
 @login_required
 def api_whois_lookup_post():
     """API endpoint for whois lookup via POST."""
@@ -1929,17 +1877,17 @@ def api_whois_lookup_post():
         return api_whois_lookup(ip_address)
         
     except Exception as e:
-        app.logger.error(f"Error in POST whois lookup: {e}")
+        current_app.logger.error(f"Error in POST whois lookup: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
      
-@app.route('/favicon.ico')
+@bp.route('/favicon.ico')
 def favicon():
     try:
-        return app.send_static_file('favicon.ico')
+        return current_app.send_static_file('favicon.ico')
     except:
         return '', 204
 
-@app.errorhandler(404)
+@bp.app_errorhandler(404)
 def not_found_error(error):
     return render_template('error.html', error={
         'code': 404,
@@ -1947,7 +1895,7 @@ def not_found_error(error):
         'description': 'The requested page was not found.'
     }), 404
 
-@app.errorhandler(500)
+@bp.app_errorhandler(500)
 def internal_error(error):
     db.session.rollback()
     return render_template('error.html', error={
@@ -1958,53 +1906,24 @@ def internal_error(error):
 
 @socketio.on('connect')
 def handle_connect():
-    app.logger.debug("SocketIO client connected")
+    current_app.logger.debug("SocketIO client connected")
     emit('status_update', {'message': 'Connected'})
 
-# Scheduling
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=extra_antivirus_layer, trigger="interval", seconds=3600)
 
-def check_password_expiration():
-    with app.app_context():
-        expired_users = User.query.filter(
-            User.password_expires <= datetime.utcnow()
-        ).all()
-        
-        for user in expired_users:
-            user.password_change_required = True
-            logging.warning(f'Password expired for user: {user.username}')
-            
-            # Create audit log
-            audit = AuditLog(
-                user_id=user.id,
-                action='password_expired',
-                details='Password expired and change required'
-            )
-            db.session.add(audit)
-        
-        try:
-            db.session.commit()
-        except Exception as e:
-            logging.error(f"Error in check_password_expiration: {e}")
-            db.session.rollback()
 
-scheduler.add_job(func=check_password_expiration, trigger="interval", hours=24)
-scheduler.start()
-
-@app.route('/api/performance/metric', methods=['POST'])
+@bp.route('/api/performance/metric', methods=['POST'])
 @login_required
 def api_performance_metric():
     """Endpoint to receive performance metrics from client."""
     try:
         data = request.get_json()
         if data:
-            app.logger.info(f"Performance Metric: {data.get('milestone')} - {data.get('time')}ms - {data.get('url')}")
+            current_app.logger.info(f"Performance Metric: {data.get('milestone')} - {data.get('time')}ms - {data.get('url')}")
         return jsonify({'status': 'success'})
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-@app.route('/api/performance/stats')
+@bp.route('/api/performance/stats')
 @login_required
 @require_admin
 def api_performance_stats():
@@ -2022,15 +1941,8 @@ def api_performance_stats():
             }
         })
     except Exception as e:
-        app.logger.error(f"Error getting performance stats: {e}")
+        current_app.logger.error(f"Error getting performance stats: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-# Initialize database optimizations on startup
-with app.app_context():
-    try:
-        optimize_database_queries()
-    except Exception as e:
-        app.logger.error(f"Error optimizing database: {e}")
 
-if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+

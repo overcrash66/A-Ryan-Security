@@ -9,14 +9,14 @@ import json
 from datetime import datetime
 
 # Add the project root to the path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def test_ai_consistency():
     """Test that AI analysis provides consistent results."""
     print("[TEST] Testing AI Analysis Consistency...")
     
     try:
-        from ai_integration import get_comprehensive_ai_analysis, get_ai_advice
+        from security_modules.ai_integration import get_comprehensive_ai_analysis, get_ai_advice
         
         # Mock security data for testing
         test_data = {
@@ -70,7 +70,7 @@ def test_process_scanning():
     print("\n[TEST] Testing Process Scanning Feature...")
     
     try:
-        from process_scanner import scan_running_processes, get_system_services, get_startup_programs
+        from security_modules.process_scanner import scan_running_processes, get_system_services, get_startup_programs
         
         print("  [OK] Testing process scanning...")
         process_results = scan_running_processes()
@@ -169,7 +169,9 @@ def test_web_routes():
     print("\n[TEST] Testing Web Route Configuration...")
     
     try:
-        from web_interface.app import app
+        from web_interface import create_app
+        app = create_app()
+        app.config['TESTING'] = True
         
         with app.test_client() as client:
             # Test that routes exist (they should return 302 redirect to login for unauthenticated users)

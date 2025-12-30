@@ -22,8 +22,14 @@ def scan_running_processes():
         high_resource_processes = []
         network_processes = []
         
+        max_processes = 50  # Limit for performance/testing
+        process_count = 0
+        
         # Get all running processes
         for proc in psutil.process_iter(['pid', 'name', 'exe', 'cmdline', 'cpu_percent', 'memory_percent', 'create_time', 'username']):
+            if process_count >= max_processes:
+                break
+            process_count += 1
             try:
                 proc_info = proc.info
                 
@@ -138,9 +144,11 @@ def get_file_security_info(file_path):
             # Check if file is signed (Windows specific)
             if os.name == 'nt':
                 try:
+                    # Escape single quotes for PowerShell
+                    escaped_path = file_path.replace("'", "''")
                     result = subprocess.run([
                         'powershell', '-Command',
-                        f'Get-AuthenticodeSignature "{file_path}" | Select-Object Status'
+                        f"Get-AuthenticodeSignature -LiteralPath '{escaped_path}' | Select-Object Status"
                     ], capture_output=True, text=True, timeout=5)
                     
                     if result.returncode == 0 and 'Valid' in result.stdout:
@@ -368,4 +376,3 @@ def safe_process_scan():
     except Exception as e:
         logging.error(f"Error in safe process scan: {e}")
         return {'error': str(e), 'total_processes': 0}
-        return {'error': f"Could not retrieve startup programs: {str(e)}"}

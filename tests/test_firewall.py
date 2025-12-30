@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 # Add the parent directory to the Python path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from firewall import check_firewall_status, add_rule, list_rules
+from security_modules.firewall import check_firewall_status, add_rule, list_rules
 
 @patch('subprocess.run')
 def test_check_firewall_status(mock_run):

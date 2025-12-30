@@ -13,8 +13,9 @@ from cache import init_cache
 
 def create_test_app():
     """Create a Flask application configured for testing."""
-    # Use the app from web_interface
-    from web_interface.app import app
+    # Use the app factory
+    from web_interface import create_app
+    app = create_app()
     
     # Override config for testing
     app.config.update({
@@ -37,8 +38,8 @@ def create_test_app():
     # Re-initialize DB with new URI
     db.init_app(app)
 
-    # Use the existing login_manager from web_interface
-    from web_interface.app import login_manager
+    # Use the existing login_manager from web_interface extension init
+    from web_interface import login_manager
 
     @login_manager.user_loader
     def load_user(user_id):

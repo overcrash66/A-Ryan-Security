@@ -18,7 +18,7 @@
             </div>
             <div class="predictions-content">
                 {% if predictions %}
-                    <div class="prediction-text">{{ predictions | replace('\n', '<br>') | safe }}</div>
+                <div class="prediction-text">{{ predictions | replace('\n', '<br>') | safe }}</div>
                 {% endif %}
             </div>
         </div>
@@ -33,25 +33,25 @@
             </div>
             <div class="logs-content">
                 {% if logs %}
-                    <div class="logs-container">
-                        {% for log in logs %}
-                            <div class="log-entry {{ log.level.lower() }}">
-                                <div class="log-timestamp">
-                                    {{ log.timestamp | local_datetime }}
-                                </div>
-                                <div class="log-level">
-                                    <span class="level-badge {{ log.level.lower() }}">{{ log.level }}</span>
-                                </div>
-                                <div class="log-message">
-                                    {{ log.message }}
-                                </div>
-                            </div>
-                        {% endfor %}
+                <div class="logs-container">
+                    {% for log in logs %}
+                    <div class="log-entry {{ log.level.lower() }}">
+                        <div class="log-timestamp">
+                            {{ log.timestamp | local_datetime }}
+                        </div>
+                        <div class="log-level">
+                            <span class="level-badge {{ log.level.lower() }}">{{ log.level }}</span>
+                        </div>
+                        <div class="log-message">
+                            {{ log.message }}
+                        </div>
                     </div>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    <div class="no-logs">
-                        <p>📝 No logs available. System monitoring will populate this section.</p>
-                    </div>
+                <div class="no-logs">
+                    <p>📝 No logs available. System monitoring will populate this section.</p>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -66,60 +66,64 @@
             </div>
             <div class="issues-content">
                 {% if issues %}
-                    <div class="issues-table-container">
-                        <table class="issues-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Category</th>
-                                    <th>Description</th>
-                                    <th>Severity</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for issue in issues %}
-                                    <tr class="issue-row {{ issue.severity.lower() }}">
-                                        <td class="issue-id">#{{ issue.id }}</td>
-                                        <td class="issue-category">
-                                            <span class="category-tag">{{ issue.category }}</span>
-                                        </td>
-                                        <td class="issue-description">
-                                            {{ issue.description }}
-                                            {% if issue.category == 'Network Anomaly' %}
-                                                <div class="issue-explanation">
-                                                    <small><strong>What this means:</strong> Our AI-powered network monitoring detected unusual traffic patterns that deviate from normal behavior. This could indicate potential security threats, malware communication, or unauthorized network access attempts.</small>
-                                                </div>
-                                            {% endif %}
-                                        </td>
-                                        <td class="issue-severity">
-                                            <span class="severity-badge {{ issue.severity.lower() }}">
-                                                {{ issue.severity }}
-                                            </span>
-                                        </td>
-                                        <td class="issue-status">
-                                            <span class="status-indicator {{ 'resolved' if issue.resolved else 'open' }}">
-                                                {{ 'Resolved' if issue.resolved else 'Open' }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="issues-table-container">
+                    <table class="issues-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Severity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for issue in issues %}
+                            <tr class="issue-row {{ issue.severity.lower() }}">
+                                <td class="issue-id">#{{ issue.id }}</td>
+                                <td class="issue-category">
+                                    <span class="category-tag">{{ issue.category }}</span>
+                                </td>
+                                <td class="issue-description">
+                                    {{ issue.description }}
+                                    {% if issue.category == 'Network Anomaly' %}
+                                    <div class="issue-explanation">
+                                        <small><strong>What this means:</strong> Our AI-powered network monitoring
+                                            detected unusual traffic patterns that deviate from normal behavior. This
+                                            could indicate potential security threats, malware communication, or
+                                            unauthorized network access attempts.</small>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="issue-severity">
+                                    <span class="severity-badge {{ issue.severity.lower() }}">
+                                        {{ issue.severity }}
+                                    </span>
+                                </td>
+                                <td class="issue-status">
+                                    <span class="status-indicator {{ 'resolved' if issue.resolved else 'open' }}">
+                                        {{ 'Resolved' if issue.resolved else 'Open' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div class="no-issues">
-                        <p>✅ No security issues detected. Your system appears to be secure.</p>
-                        <div class="security-info">
-                            <h4>About Security Issue Detection:</h4>
-                            <ul>
-                                <li><strong>Network Anomalies:</strong> AI-powered detection of unusual network traffic patterns</li>
-                                <li><strong>Vulnerability Issues:</strong> Problems found during security scans</li>
-                                <li><strong>System Alerts:</strong> Critical system security events</li>
-                                <li><strong>Access Violations:</strong> Unauthorized access attempts</li>
-                            </ul>
-                        </div>
+                <div class="no-issues">
+                    <p>✅ No security issues detected. Your system appears to be secure.</p>
+                    <div class="security-info">
+                        <h4>About Security Issue Detection:</h4>
+                        <ul>
+                            <li><strong>Network Anomalies:</strong> AI-powered detection of unusual network traffic
+                                patterns</li>
+                            <li><strong>Vulnerability Issues:</strong> Problems found during security scans</li>
+                            <li><strong>System Alerts:</strong> Critical system security events</li>
+                            <li><strong>Access Violations:</strong> Unauthorized access attempts</li>
+                        </ul>
                     </div>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -134,66 +138,67 @@
             </div>
             <div class="scan-history-content">
                 {% if scan_history %}
-                    <div class="scan-history-table-container">
-                        <table class="scan-history-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Scan Path</th>
-                                    <th>Status</th>
-                                    <th>Vulnerabilities</th>
-                                    <th>Duration</th>
-                                    <th>OSV Version</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for scan in scan_history %}
-                                    <tr class="scan-row {{ scan.status }}">
-                                        <td class="scan-date">
-                                            {{ scan.timestamp | local_date }}
-                                        </td>
-                                        <td class="scan-path">
-                                            <code>{{ scan.scan_path[:50] }}{% if scan.scan_path|length > 50 %}...{% endif %}</code>
-                                        </td>
-                                        <td class="scan-status">
-                                            <span class="status-badge {{ scan.status }}">
-                                                {% if scan.status == 'completed' %}
-                                                    ✅ Completed
-                                                {% elif scan.status == 'failed' %}
-                                                    ❌ Failed
-                                                {% elif scan.status == 'timeout' %}
-                                                    ⏱️ Timeout
-                                                {% else %}
-                                                    ❓ {{ scan.status }}
-                                                {% endif %}
-                                            </span>
-                                        </td>
-                                        <td class="scan-vulns">
-                                            {% if scan.vulnerabilities_found > 0 %}
-                                                <span class="vuln-count-badge">{{ scan.vulnerabilities_found }}</span>
-                                            {% else %}
-                                                <span class="no-vulns">0</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="scan-duration">
-                                            {% if scan.scan_duration %}
-                                                {{ "%.1f"|format(scan.scan_duration) }}s
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-                                        <td class="scan-version">
-                                            {{ scan.osv_version or 'Unknown' }}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="scan-history-table-container">
+                    <table class="scan-history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Scan Path</th>
+                                <th>Status</th>
+                                <th>Vulnerabilities</th>
+                                <th>Duration</th>
+                                <th>OSV Version</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scan in scan_history %}
+                            <tr class="scan-row {{ scan.status }}">
+                                <td class="scan-date">
+                                    {{ scan.timestamp | local_date }}
+                                </td>
+                                <td class="scan-path">
+                                    <code>{{ scan.scan_path[:50] }}{% if scan.scan_path|length > 50 %}...{% endif %}</code>
+                                </td>
+                                <td class="scan-status">
+                                    <span class="status-badge {{ scan.status }}">
+                                        {% if scan.status == 'completed' %}
+                                        ✅ Completed
+                                        {% elif scan.status == 'failed' %}
+                                        ❌ Failed
+                                        {% elif scan.status == 'timeout' %}
+                                        ⏱️ Timeout
+                                        {% else %}
+                                        ❓ {{ scan.status }}
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td class="scan-vulns">
+                                    {% if scan.vulnerabilities_found > 0 %}
+                                    <span class="vuln-count-badge">{{ scan.vulnerabilities_found }}</span>
+                                    {% else %}
+                                    <span class="no-vulns">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="scan-duration">
+                                    {% if scan.scan_duration %}
+                                    {{ "%.1f"|format(scan.scan_duration) }}s
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </td>
+                                <td class="scan-version">
+                                    {{ scan.osv_version or 'Unknown' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div class="no-scan-history">
-                        <p>📊 No scan history available. Run a <a href="{{ url_for('custom_scan') }}">custom scan</a> to start building your history.</p>
-                    </div>
+                <div class="no-scan-history">
+                    <p>📊 No scan history available. Run a <a href="{{ url_for('main.custom_scan') }}">custom scan</a>
+                        to start building your history.</p>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -201,576 +206,576 @@
 </div>
 
 <div class="history-actions">
-    <a href="{{ url_for('status') }}" class="btn btn-primary">🔍 Current Status</a>
-    <a href="{{ url_for('report') }}" class="btn btn-secondary">📄 Generate Report</a>
-    <a href="{{ url_for('process_scan') }}" class="btn btn-info">⚙️ Process Scan</a>
+    <a href="{{ url_for('main.status') }}" class="btn btn-primary">🔍 Current Status</a>
+    <a href="{{ url_for('main.report') }}" class="btn btn-secondary">📄 Generate Report</a>
+    <a href="{{ url_for('main.process_scan') }}" class="btn btn-info">⚙️ Process Scan</a>
     <button onclick="refreshHistory()" class="btn btn-outline" style="color: black;">🔄 Refresh Data</button>
 </div>
 <style>
-.history-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
+    .history-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
 
-.history-header h1 {
-    font-size: 2.2rem;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
-}
+    .history-header h1 {
+        font-size: 2.2rem;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+    }
 
-.history-subtitle {
-    font-size: 1rem;
-    color: #6c757d;
-    margin: 0;
-}
+    .history-subtitle {
+        font-size: 1rem;
+        color: #6c757d;
+        margin: 0;
+    }
 
-.history-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-    margin-bottom: 2rem;
-}
-
-.prediction-section,
-.logs-section,
-.issues-section {
-    width: 100%;
-}
-
-.ai-predictions-card,
-.logs-card,
-.issues-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-}
-
-.card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.card-header h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 600;
-}
-
-.ai-badge,
-.log-count,
-.issue-count {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.predictions-content,
-.logs-content,
-.issues-content {
-    padding: 1.5rem;
-}
-
-.prediction-text {
-    line-height: 1.7;
-    font-size: 1rem;
-    color: #495057;
-}
-
-.no-predictions,
-.no-logs,
-.no-issues {
-    text-align: center;
-    padding: 2rem;
-    color: #6c757d;
-    font-style: italic;
-}
-
-.logs-container {
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-}
-
-.log-entry {
-    display: grid;
-    grid-template-columns: 150px 80px 1fr;
-    gap: 1rem;
-    padding: 0.75rem;
-    border-bottom: 1px solid #f8f9fa;
-    align-items: center;
-}
-
-.log-entry:last-child {
-    border-bottom: none;
-}
-
-.log-entry.error {
-    background-color: #fff5f5;
-    border-left: 4px solid #dc3545;
-}
-
-.log-entry.warning {
-    background-color: #fffbf0;
-    border-left: 4px solid #ffc107;
-}
-
-.log-entry.info {
-    background-color: #f0f8ff;
-    border-left: 4px solid #17a2b8;
-}
-
-.log-timestamp {
-    font-size: 0.85rem;
-    color: #6c757d;
-    font-family: monospace;
-}
-
-.level-badge {
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.level-badge.error {
-    background-color: #dc3545;
-    color: white;
-}
-
-.level-badge.warning {
-    background-color: #ffc107;
-    color: #212529;
-}
-
-.level-badge.info {
-    background-color: #17a2b8;
-    color: white;
-}
-
-.log-message {
-    font-size: 0.9rem;
-    color: #495057;
-}
-
-.issues-table-container {
-    overflow-x: auto;
-}
-
-.issues-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0;
-}
-
-.issues-table th {
-    background-color: #f8f9fa;
-    padding: 0.75rem;
-    text-align: left;
-    font-weight: 600;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
-}
-
-.issues-table td {
-    padding: 0.75rem;
-    border-bottom: 1px solid #dee2e6;
-    vertical-align: middle;
-}
-
-.issue-row.high {
-    background-color: #fff5f5;
-}
-
-.issue-row.medium {
-    background-color: #fffbf0;
-}
-
-.issue-row.low {
-    background-color: #f0f8ff;
-}
-
-.issue-id {
-    font-family: monospace;
-    font-weight: 600;
-    color: #6c757d;
-}
-
-.category-tag {
-    background-color: #e9ecef;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.severity-badge {
-    padding: 0.3rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.severity-badge.high {
-    background-color: #dc3545;
-    color: white;
-}
-
-.severity-badge.medium {
-    background-color: #ffc107;
-    color: #212529;
-}
-
-.severity-badge.low {
-    background-color: #28a745;
-    color: white;
-}
-
-.status-indicator {
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.status-indicator.open {
-    background-color: #fff3cd;
-    color: #856404;
-}
-
-.status-indicator.resolved {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.history-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-@media (max-width: 768px) {
-    .log-entry {
+    .history-grid {
+        display: grid;
         grid-template-columns: 1fr;
-        gap: 0.5rem;
+        gap: 2rem;
+        margin-bottom: 2rem;
     }
-    
-    .log-timestamp,
-    .log-level {
-        font-size: 0.8rem;
+
+    .prediction-section,
+    .logs-section,
+    .issues-section {
+        width: 100%;
     }
-    
-    .issues-table {
-        font-size: 0.85rem;
+
+    .ai-predictions-card,
+    .logs-card,
+    .issues-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
     }
-    
-    .history-actions {
-        flex-direction: column;
+
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
         align-items: center;
     }
-}
 
-/* Scan History Styles */
-.scan-history-section {
-    width: 100%;
-}
+    .card-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
 
-.scan-history-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-}
+    .ai-badge,
+    .log-count,
+    .issue-count {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
 
-.scan-count {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
+    .predictions-content,
+    .logs-content,
+    .issues-content {
+        padding: 1.5rem;
+    }
 
-.scan-history-content {
-    padding: 1.5rem;
-}
+    .prediction-text {
+        line-height: 1.7;
+        font-size: 1rem;
+        color: #495057;
+    }
 
-.scan-history-table-container {
-    overflow-x: auto;
-}
+    .no-predictions,
+    .no-logs,
+    .no-issues {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+        font-style: italic;
+    }
 
-.scan-history-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0;
-}
+    .logs-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+    }
 
-.scan-history-table th {
-    background-color: #f8f9fa;
-    padding: 0.75rem;
-    text-align: left;
-    font-weight: 600;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
-    font-size: 0.9rem;
-}
+    .log-entry {
+        display: grid;
+        grid-template-columns: 150px 80px 1fr;
+        gap: 1rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid #f8f9fa;
+        align-items: center;
+    }
 
-.scan-history-table td {
-    padding: 0.75rem;
-    border-bottom: 1px solid #dee2e6;
-    vertical-align: middle;
-}
+    .log-entry:last-child {
+        border-bottom: none;
+    }
 
-.scan-row.completed {
-    background-color: #f8fff8;
-}
+    .log-entry.error {
+        background-color: #fff5f5;
+        border-left: 4px solid #dc3545;
+    }
 
-.scan-row.failed {
-    background-color: #fff5f5;
-}
+    .log-entry.warning {
+        background-color: #fffbf0;
+        border-left: 4px solid #ffc107;
+    }
 
-.scan-row.timeout {
-    background-color: #fffbf0;
-}
+    .log-entry.info {
+        background-color: #f0f8ff;
+        border-left: 4px solid #17a2b8;
+    }
 
-.scan-date {
-    font-family: monospace;
-    font-size: 0.85rem;
-    color: #6c757d;
-}
-
-.scan-path code {
-    background-color: #f8f9fa;
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    color: #495057;
-}
-
-.status-badge {
-    padding: 0.3rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.status-badge.completed {
-    background-color: #28a745;
-    color: white;
-}
-
-.status-badge.failed {
-    background-color: #dc3545;
-    color: white;
-}
-
-.status-badge.timeout {
-    background-color: #ffc107;
-    color: #212529;
-}
-
-.vuln-count-badge {
-    background-color: #dc3545;
-    color: white;
-    padding: 0.2rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.no-vulns {
-    color: #28a745;
-    font-weight: 600;
-}
-
-.scan-duration {
-    font-family: monospace;
-    color: #6c757d;
-}
-
-.scan-version {
-    font-size: 0.85rem;
-    color: #6c757d;
-}
-
-.no-scan-history {
-    text-align: center;
-    padding: 2rem;
-    color: #6c757d;
-    font-style: italic;
-}
-
-.no-scan-history a {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.no-scan-history a:hover {
-    text-decoration: underline;
-}
-
-@media (max-width: 768px) {
-    .scan-history-table {
+    .log-timestamp {
         font-size: 0.85rem;
+        color: #6c757d;
+        font-family: monospace;
     }
-    
-    .scan-path code {
+
+    .level-badge {
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
         font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
     }
-}
 
-.issue-explanation {
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background-color: #f8f9fa;
-    border-left: 3px solid #17a2b8;
-    border-radius: 0 4px 4px 0;
-}
+    .level-badge.error {
+        background-color: #dc3545;
+        color: white;
+    }
 
-.issue-explanation small {
-    color: #495057;
-    line-height: 1.4;
-}
+    .level-badge.warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
 
-.security-info {
-    margin-top: 1rem;
-    padding: 1rem;
-    background-color: #e3f2fd;
-    border-radius: 8px;
-    border-left: 4px solid #2196f3;
-}
+    .level-badge.info {
+        background-color: #17a2b8;
+        color: white;
+    }
 
-.security-info h4 {
-    margin: 0 0 0.75rem 0;
-    color: #1565c0;
-    font-size: 1rem;
-}
+    .log-message {
+        font-size: 0.9rem;
+        color: #495057;
+    }
 
-.security-info ul {
-    margin: 0;
-    padding-left: 1.5rem;
-    color: #1565c0;
-}
+    .issues-table-container {
+        overflow-x: auto;
+    }
 
-.security-info li {
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-}
+    .issues-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
 
-.security-info strong {
-    color: #0d47a1;
-}
+    .issues-table th {
+        background-color: #f8f9fa;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .issues-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        vertical-align: middle;
+    }
+
+    .issue-row.high {
+        background-color: #fff5f5;
+    }
+
+    .issue-row.medium {
+        background-color: #fffbf0;
+    }
+
+    .issue-row.low {
+        background-color: #f0f8ff;
+    }
+
+    .issue-id {
+        font-family: monospace;
+        font-weight: 600;
+        color: #6c757d;
+    }
+
+    .category-tag {
+        background-color: #e9ecef;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .severity-badge {
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .severity-badge.high {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .severity-badge.medium {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    .severity-badge.low {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .status-indicator {
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .status-indicator.open {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-indicator.resolved {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .history-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+        .log-entry {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .log-timestamp,
+        .log-level {
+            font-size: 0.8rem;
+        }
+
+        .issues-table {
+            font-size: 0.85rem;
+        }
+
+        .history-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    /* Scan History Styles */
+    .scan-history-section {
+        width: 100%;
+    }
+
+    .scan-history-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .scan-count {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .scan-history-content {
+        padding: 1.5rem;
+    }
+
+    .scan-history-table-container {
+        overflow-x: auto;
+    }
+
+    .scan-history-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .scan-history-table th {
+        background-color: #f8f9fa;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        font-size: 0.9rem;
+    }
+
+    .scan-history-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        vertical-align: middle;
+    }
+
+    .scan-row.completed {
+        background-color: #f8fff8;
+    }
+
+    .scan-row.failed {
+        background-color: #fff5f5;
+    }
+
+    .scan-row.timeout {
+        background-color: #fffbf0;
+    }
+
+    .scan-date {
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .scan-path code {
+        background-color: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        color: #495057;
+    }
+
+    .status-badge {
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge.completed {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .status-badge.failed {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .status-badge.timeout {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    .vuln-count-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .no-vulns {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .scan-duration {
+        font-family: monospace;
+        color: #6c757d;
+    }
+
+    .scan-version {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .no-scan-history {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .no-scan-history a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .no-scan-history a:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+        .scan-history-table {
+            font-size: 0.85rem;
+        }
+
+        .scan-path code {
+            font-size: 0.75rem;
+        }
+    }
+
+    .issue-explanation {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background-color: #f8f9fa;
+        border-left: 3px solid #17a2b8;
+        border-radius: 0 4px 4px 0;
+    }
+
+    .issue-explanation small {
+        color: #495057;
+        line-height: 1.4;
+    }
+
+    .security-info {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #e3f2fd;
+        border-radius: 8px;
+        border-left: 4px solid #2196f3;
+    }
+
+    .security-info h4 {
+        margin: 0 0 0.75rem 0;
+        color: #1565c0;
+        font-size: 1rem;
+    }
+
+    .security-info ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: #1565c0;
+    }
+
+    .security-info li {
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+    }
+
+    .security-info strong {
+        color: #0d47a1;
+    }
 </style>
 
 <script>
-// Enhanced history loader with parallel fetching, timeouts, retries, and dynamic updates
-class HistoryPageLoader {
-    constructor() {
-        this.loadingSteps = [
-            { id: 'logs', name: 'system logs', endpoint: '/api/history/logs' },
-            { id: 'issues', name: 'security issues', endpoint: '/api/history/issues' },
-            { id: 'predictions', name: 'ai predictions', endpoint: '/api/history/predictions' },
-            { id: 'scan_history', name: 'scan history', endpoint: '/api/history/scan_history' }
-        ];
-        this.data = {};
-        this.maxRetries = 3;
-        this.timeoutMs = 10000; // 10 seconds timeout per request
-        this.pageSize = 20; // Number of items per page for pagination
-    }
+    // Enhanced history loader with parallel fetching, timeouts, retries, and dynamic updates
+    class HistoryPageLoader {
+        constructor() {
+            this.loadingSteps = [
+                { id: 'logs', name: 'system logs', endpoint: '/api/history/logs' },
+                { id: 'issues', name: 'security issues', endpoint: '/api/history/issues' },
+                { id: 'predictions', name: 'ai predictions', endpoint: '/api/history/predictions' },
+                { id: 'scan_history', name: 'scan history', endpoint: '/api/history/scan_history' }
+            ];
+            this.data = {};
+            this.maxRetries = 3;
+            this.timeoutMs = 10000; // 10 seconds timeout per request
+            this.pageSize = 20; // Number of items per page for pagination
+        }
 
-    // Fetch with timeout and retry
-    async fetchWithTimeoutAndRetry(url, retries = this.maxRetries) {
-        for (let attempt = 1; attempt <= retries; attempt++) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+        // Fetch with timeout and retry
+        async fetchWithTimeoutAndRetry(url, retries = this.maxRetries) {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
-                const response = await fetch(url, { signal: controller.signal });
-                clearTimeout(timeoutId);
+                    const response = await fetch(url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        return result.data;
+                    } else {
+                        throw new Error(result.error || 'API error');
+                    }
+                } catch (error) {
+                    if (attempt === retries || error.name === 'AbortError') {
+                        console.error(`Failed to fetch ${url} after ${attempt} attempts:`, error);
+                        return { error: error.message };
+                    }
+                    // Wait before retrying (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
                 }
-
-                const result = await response.json();
-                if (result.status === 'success') {
-                    return result.data;
-                } else {
-                    throw new Error(result.error || 'API error');
-                }
-            } catch (error) {
-                if (attempt === retries || error.name === 'AbortError') {
-                    console.error(`Failed to fetch ${url} after ${attempt} attempts:`, error);
-                    return { error: error.message };
-                }
-                // Wait before retrying (exponential backoff)
-                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
             }
         }
-    }
 
-    async loadHistoryData() {
-        // Initialize loading UI
-        if (window.skeletonManager) {
-            window.skeletonManager.showSkeleton('history');
-        } else {
-            console.warn('skeletonManager not available, using fallback');
-            document.body.classList.add('loading');
-        }
-
-        if (window.loadingManager) {
-            window.loadingManager.show('Loading Security History', 'Gathering historical security data and analysis...');
-        }
-
-        try {
-            // Fetch all data in parallel
-            const fetchPromises = this.loadingSteps.map(async (step, index) => {
-                if (window.loadingManager) {
-                    window.loadingManager.nextStep(`Loading ${step.name}`);
-                }
-                const data = await this.fetchWithTimeoutAndRetry(step.endpoint);
-                this.data[step.id] = data;
-                if (window.loadingManager) {
-                    window.loadingManager.updateProgress(((index + 1) / this.loadingSteps.length) * 100);
-                }
-            });
-
-            await Promise.all(fetchPromises);
-
-            // Update the page with loaded data
-            this.updateHistoryContent();
-        } catch (error) {
-            console.error('Error loading history data:', error);
-            this.showErrorMessage('Failed to load security history. Please try again later.');
-        } finally {
+        async loadHistoryData() {
+            // Initialize loading UI
             if (window.skeletonManager) {
-                window.skeletonManager.hideAllSkeletons();
+                window.skeletonManager.showSkeleton('history');
             } else {
-                document.body.classList.remove('loading');
+                console.warn('skeletonManager not available, using fallback');
+                document.body.classList.add('loading');
             }
+
             if (window.loadingManager) {
-                window.loadingManager.hide();
+                window.loadingManager.show('Loading Security History', 'Gathering historical security data and analysis...');
+            }
+
+            try {
+                // Fetch all data in parallel
+                const fetchPromises = this.loadingSteps.map(async (step, index) => {
+                    if (window.loadingManager) {
+                        window.loadingManager.nextStep(`Loading ${step.name}`);
+                    }
+                    const data = await this.fetchWithTimeoutAndRetry(step.endpoint);
+                    this.data[step.id] = data;
+                    if (window.loadingManager) {
+                        window.loadingManager.updateProgress(((index + 1) / this.loadingSteps.length) * 100);
+                    }
+                });
+
+                await Promise.all(fetchPromises);
+
+                // Update the page with loaded data
+                this.updateHistoryContent();
+            } catch (error) {
+                console.error('Error loading history data:', error);
+                this.showErrorMessage('Failed to load security history. Please try again later.');
+            } finally {
+                if (window.skeletonManager) {
+                    window.skeletonManager.hideAllSkeletons();
+                } else {
+                    document.body.classList.remove('loading');
+                }
+                if (window.loadingManager) {
+                    window.loadingManager.hide();
+                }
             }
         }
-    }
 
-    // Display error message to user
-    showErrorMessage(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.style.cssText = `
+        // Display error message to user
+        showErrorMessage(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.style.cssText = `
             background-color: #f8d7da;
             color: #721c24;
             padding: 1rem;
@@ -778,26 +783,26 @@ class HistoryPageLoader {
             border-radius: 4px;
             text-align: center;
         `;
-        errorDiv.textContent = message;
-        document.querySelector('.history-grid')?.prepend(errorDiv);
-    }
-
-    // Update DOM dynamically without reloading
-    updateHistoryContent() {
-        // Update Predictions
-        const predictionsContent = document.querySelector('.predictions-content');
-        if (predictionsContent) {
-            if (this.data.predictions && !this.data.predictions.error) {
-                predictionsContent.innerHTML = `<div class="prediction-text">${this.data.predictions.replace(/\n/g, '<br>')}</div>`;
-
-            }
+            errorDiv.textContent = message;
+            document.querySelector('.history-grid')?.prepend(errorDiv);
         }
 
-        // Update Logs with Pagination
-        const logsContent = document.querySelector('.logs-content');
-        if (logsContent && this.data.logs && !this.data.logs.error) {
-            const logs = this.data.logs.slice(0, this.pageSize); // First page
-            logsContent.innerHTML = `
+        // Update DOM dynamically without reloading
+        updateHistoryContent() {
+            // Update Predictions
+            const predictionsContent = document.querySelector('.predictions-content');
+            if (predictionsContent) {
+                if (this.data.predictions && !this.data.predictions.error) {
+                    predictionsContent.innerHTML = `<div class="prediction-text">${this.data.predictions.replace(/\n/g, '<br>')}</div>`;
+
+                }
+            }
+
+            // Update Logs with Pagination
+            const logsContent = document.querySelector('.logs-content');
+            if (logsContent && this.data.logs && !this.data.logs.error) {
+                const logs = this.data.logs.slice(0, this.pageSize); // First page
+                logsContent.innerHTML = `
                 <div class="logs-container">
                     ${logs.map(log => `
                         <div class="log-entry ${log.level.toLowerCase()}">
@@ -813,27 +818,27 @@ class HistoryPageLoader {
                     ` : ''}
                 </div>
             `;
-            // Add event listener for "Load More" button
-            const loadMoreLogs = logsContent.querySelector('.load-more-logs');
-            if (loadMoreLogs) {
-                loadMoreLogs.addEventListener('click', () => this.loadMoreLogs());
-            }
-            // Auto-scroll to bottom
-            const logsContainer = logsContent.querySelector('.logs-container');
-            if (logsContainer && logsContainer.scrollHeight > logsContainer.clientHeight) {
-                logsContainer.scrollTop = logsContainer.scrollHeight;
-            }
-        } else if (logsContent) {
-            logsContent.innerHTML = `
+                // Add event listener for "Load More" button
+                const loadMoreLogs = logsContent.querySelector('.load-more-logs');
+                if (loadMoreLogs) {
+                    loadMoreLogs.addEventListener('click', () => this.loadMoreLogs());
+                }
+                // Auto-scroll to bottom
+                const logsContainer = logsContent.querySelector('.logs-container');
+                if (logsContainer && logsContainer.scrollHeight > logsContainer.clientHeight) {
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
+            } else if (logsContent) {
+                logsContent.innerHTML = `
                 <div class="no-logs">
                     <p>📝 No logs available. ${this.data.logs?.error || 'System monitoring will populate this section.'}</p>
                 </div>`;
-        }
+            }
 
-        // Update Issues
-        const issuesContent = document.querySelector('.issues-content');
-        if (issuesContent && this.data.issues && !this.data.issues.error) {
-            issuesContent.innerHTML = `
+            // Update Issues
+            const issuesContent = document.querySelector('.issues-content');
+            if (issuesContent && this.data.issues && !this.data.issues.error) {
+                issuesContent.innerHTML = `
                 <div class="issues-table-container">
                     <table class="issues-table">
                         <thead>
@@ -877,13 +882,13 @@ class HistoryPageLoader {
                     ` : ''}
                 </div>
             `;
-            // Add event listener for "Load More" button
-            const loadMoreIssues = issuesContent.querySelector('.load-more-issues');
-            if (loadMoreIssues) {
-                loadMoreIssues.addEventListener('click', () => this.loadMoreIssues());
-            }
-        } else if (issuesContent) {
-            issuesContent.innerHTML = `
+                // Add event listener for "Load More" button
+                const loadMoreIssues = issuesContent.querySelector('.load-more-issues');
+                if (loadMoreIssues) {
+                    loadMoreIssues.addEventListener('click', () => this.loadMoreIssues());
+                }
+            } else if (issuesContent) {
+                issuesContent.innerHTML = `
                 <div class="no-issues">
                     <p>✅ No security issues detected. ${this.data.issues?.error || 'Your system appears to be secure.'}</p>
                     <div class="security-info">
@@ -896,12 +901,12 @@ class HistoryPageLoader {
                         </ul>
                     </div>
                 </div>`;
-        }
+            }
 
-        // Update Scan History
-        const scanHistoryContent = document.querySelector('.scan-history-content');
-        if (scanHistoryContent && this.data.scan_history && !this.data.scan_history.error) {
-            scanHistoryContent.innerHTML = `
+            // Update Scan History
+            const scanHistoryContent = document.querySelector('.scan-history-content');
+            if (scanHistoryContent && this.data.scan_history && !this.data.scan_history.error) {
+                scanHistoryContent.innerHTML = `
                 <div class="scan-history-table-container">
                     <table class="scan-history-table">
                         <thead>
@@ -924,14 +929,14 @@ class HistoryPageLoader {
                                     <td class="scan-status">
                                         <span class="status-badge ${scan.status}">
                                             ${scan.status === 'completed' ? '✅ Completed' :
-                                              scan.status === 'failed' ? '❌ Failed' :
-                                              scan.status === 'timeout' ? '⏱️ Timeout' : `❓ ${scan.status}`}
+                        scan.status === 'failed' ? '❌ Failed' :
+                            scan.status === 'timeout' ? '⏱️ Timeout' : `❓ ${scan.status}`}
                                         </span>
                                     </td>
                                     <td class="scan-vulns">
                                         ${scan.vulnerabilities_found > 0 ?
-                                          `<span class="vuln-count-badge">${scan.vulnerabilities_found}</span>` :
-                                          '<span class="no-vulns">0</span>'}
+                        `<span class="vuln-count-badge">${scan.vulnerabilities_found}</span>` :
+                        '<span class="no-vulns">0</span>'}
                                     </td>
                                     <td class="scan-duration">${scan.scan_duration ? scan.scan_duration.toFixed(1) + 's' : 'N/A'}</td>
                                     <td class="scan-version">${scan.osv_version || 'Unknown'}</td>
@@ -944,26 +949,26 @@ class HistoryPageLoader {
                     ` : ''}
                 </div>
             `;
-            // Add event listener for "Load More" button
-            const loadMoreScans = scanHistoryContent.querySelector('.load-more-scans');
-            if (loadMoreScans) {
-                loadMoreScans.addEventListener('click', () => this.loadMoreScans());
-            }
-        } else if (scanHistoryContent) {
-            scanHistoryContent.innerHTML = `
+                // Add event listener for "Load More" button
+                const loadMoreScans = scanHistoryContent.querySelector('.load-more-scans');
+                if (loadMoreScans) {
+                    loadMoreScans.addEventListener('click', () => this.loadMoreScans());
+                }
+            } else if (scanHistoryContent) {
+                scanHistoryContent.innerHTML = `
                 <div class="no-scan-history">
                     <p>📊 No scan history available. Run a <a href="/custom_scan">custom scan</a> to start building your history.</p>
                 </div>`;
+            }
         }
-    }
 
-    // Load more logs for pagination
-    loadMoreLogs() {
-        const logsContent = document.querySelector('.logs-container');
-        if (logsContent && this.data.logs && !this.data.logs.error) {
-            const currentCount = logsContent.querySelectorAll('.log-entry').length;
-            const nextLogs = this.data.logs.slice(currentCount, currentCount + this.pageSize);
-            logsContent.insertAdjacentHTML('beforeend', nextLogs.map(log => `
+        // Load more logs for pagination
+        loadMoreLogs() {
+            const logsContent = document.querySelector('.logs-container');
+            if (logsContent && this.data.logs && !this.data.logs.error) {
+                const currentCount = logsContent.querySelectorAll('.log-entry').length;
+                const nextLogs = this.data.logs.slice(currentCount, currentCount + this.pageSize);
+                logsContent.insertAdjacentHTML('beforeend', nextLogs.map(log => `
                 <div class="log-entry ${log.level.toLowerCase()}">
                     <div class="log-timestamp">${new Date(log.timestamp).toLocaleString()}</div>
                     <div class="log-level">
@@ -972,22 +977,22 @@ class HistoryPageLoader {
                     <div class="log-message">${log.message}</div>
                 </div>
             `).join(''));
-            if (currentCount + this.pageSize >= this.data.logs.length) {
-                const loadMoreButton = logsContent.querySelector('.load-more-logs');
-                if (loadMoreButton) loadMoreButton.remove();
+                if (currentCount + this.pageSize >= this.data.logs.length) {
+                    const loadMoreButton = logsContent.querySelector('.load-more-logs');
+                    if (loadMoreButton) loadMoreButton.remove();
+                }
+                // Auto-scroll to bottom
+                logsContent.scrollTop = logsContent.scrollHeight;
             }
-            // Auto-scroll to bottom
-            logsContent.scrollTop = logsContent.scrollHeight;
         }
-    }
 
-    // Load more issues for pagination
-    loadMoreIssues() {
-        const issuesContent = document.querySelector('.issues-table tbody');
-        if (issuesContent && this.data.issues && !this.data.issues.error) {
-            const currentCount = issuesContent.querySelectorAll('.issue-row').length;
-            const nextIssues = this.data.issues.slice(currentCount, currentCount + this.pageSize);
-            issuesContent.insertAdjacentHTML('beforeend', nextIssues.map(issue => `
+        // Load more issues for pagination
+        loadMoreIssues() {
+            const issuesContent = document.querySelector('.issues-table tbody');
+            if (issuesContent && this.data.issues && !this.data.issues.error) {
+                const currentCount = issuesContent.querySelectorAll('.issue-row').length;
+                const nextIssues = this.data.issues.slice(currentCount, currentCount + this.pageSize);
+                issuesContent.insertAdjacentHTML('beforeend', nextIssues.map(issue => `
                 <tr class="issue-row ${issue.severity.toLowerCase()}">
                     <td class="issue-id">#${issue.id}</td>
                     <td class="issue-category">
@@ -1011,20 +1016,20 @@ class HistoryPageLoader {
                     </td>
                 </tr>
             `).join(''));
-            if (currentCount + this.pageSize >= this.data.issues.length) {
-                const loadMoreButton = issuesContent.parentElement.querySelector('.load-more-issues');
-                if (loadMoreButton) loadMoreButton.remove();
+                if (currentCount + this.pageSize >= this.data.issues.length) {
+                    const loadMoreButton = issuesContent.parentElement.querySelector('.load-more-issues');
+                    if (loadMoreButton) loadMoreButton.remove();
+                }
             }
         }
-    }
 
-    // Load more scans for pagination
-    loadMoreScans() {
-        const scanHistoryContent = document.querySelector('.scan-history-table tbody');
-        if (scanHistoryContent && this.data.scan_history && !this.data.scan_history.error) {
-            const currentCount = scanHistoryContent.querySelectorAll('.scan-row').length;
-            const nextScans = this.data.scan_history.slice(currentCount, currentCount + this.pageSize);
-            scanHistoryContent.insertAdjacentHTML('beforeend', nextScans.map(scan => `
+        // Load more scans for pagination
+        loadMoreScans() {
+            const scanHistoryContent = document.querySelector('.scan-history-table tbody');
+            if (scanHistoryContent && this.data.scan_history && !this.data.scan_history.error) {
+                const currentCount = scanHistoryContent.querySelectorAll('.scan-row').length;
+                const nextScans = this.data.scan_history.slice(currentCount, currentCount + this.pageSize);
+                scanHistoryContent.insertAdjacentHTML('beforeend', nextScans.map(scan => `
                 <tr class="scan-row ${scan.status}">
                     <td class="scan-date">${new Date(scan.timestamp).toLocaleDateString()}</td>
                     <td class="scan-path">
@@ -1033,70 +1038,70 @@ class HistoryPageLoader {
                     <td class="scan-status">
                         <span class="status-badge ${scan.status}">
                             ${scan.status === 'completed' ? '✅ Completed' :
-                              scan.status === 'failed' ? '❌ Failed' :
-                              scan.status === 'timeout' ? '⏱️ Timeout' : `❓ ${scan.status}`}
+                        scan.status === 'failed' ? '❌ Failed' :
+                            scan.status === 'timeout' ? '⏱️ Timeout' : `❓ ${scan.status}`}
                         </span>
                     </td>
                     <td class="scan-vulns">
                         ${scan.vulnerabilities_found > 0 ?
-                          `<span class="vuln-count-badge">${scan.vulnerabilities_found}</span>` :
-                          '<span class="no-vulns">0</span>'}
+                        `<span class="vuln-count-badge">${scan.vulnerabilities_found}</span>` :
+                        '<span class="no-vulns">0</span>'}
                     </td>
                     <td class="scan-duration">${scan.scan_duration ? scan.scan_duration.toFixed(1) + 's' : 'N/A'}</td>
                     <td class="scan-version">${scan.osv_version || 'Unknown'}</td>
                 </tr>
             `).join(''));
-            if (currentCount + this.pageSize >= this.data.scan_history.length) {
-                const loadMoreButton = scanHistoryContent.parentElement.querySelector('.load-more-scans');
-                if (loadMoreButton) loadMoreButton.remove();
+                if (currentCount + this.pageSize >= this.data.scan_history.length) {
+                    const loadMoreButton = scanHistoryContent.parentElement.querySelector('.load-more-scans');
+                    if (loadMoreButton) loadMoreButton.remove();
+                }
             }
         }
     }
-}
 
-// Auto-load history data on page load
-document.addEventListener('DOMContentLoaded', function() {
-    if (window.location.pathname === '/history') {
-        const historyLoader = new HistoryPageLoader();
-        if (window.skeletonManager) {
-            window.skeletonManager.showSkeleton('history');
-        } else {
-            document.body.classList.add('loading');
+    // Auto-load history data on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.location.pathname === '/history') {
+            const historyLoader = new HistoryPageLoader();
+            if (window.skeletonManager) {
+                window.skeletonManager.showSkeleton('history');
+            } else {
+                document.body.classList.add('loading');
+            }
+            setTimeout(() => {
+                historyLoader.loadHistoryData();
+            }, 12000);
         }
-        setTimeout(() => {
-            historyLoader.loadHistoryData();
-        }, 12000);
-    }
-});
+    });
 
-// Hide skeleton when window loads completely
-window.addEventListener('load', function() {
-    if (window.skeletonManager) {
-        window.skeletonManager.hideAllSkeletons();
-    } else {
-        document.body.classList.remove('loading');
-    }
-});
+    // Hide skeleton when window loads completely
+    window.addEventListener('load', function () {
+        if (window.skeletonManager) {
+            window.skeletonManager.hideAllSkeletons();
+        } else {
+            document.body.classList.remove('loading');
+        }
+    });
 
-// Refresh history data
-window.refreshHistory = function() {
-    const historyLoader = new HistoryPageLoader();
-    historyLoader.loadHistoryData();
-};
+    // Refresh history data
+    window.refreshHistory = function () {
+        const historyLoader = new HistoryPageLoader();
+        historyLoader.loadHistoryData();
+    };
 
-// Hide skeleton when window loads completely
-window.addEventListener('load', function() {
-    if (window.skeletonManager) {
-        window.skeletonManager.hideAllSkeletons();
-    }
-});
+    // Hide skeleton when window loads completely
+    window.addEventListener('load', function () {
+        if (window.skeletonManager) {
+            window.skeletonManager.hideAllSkeletons();
+        }
+    });
 
-// Auto-scroll to bottom of logs if there are many entries
-document.addEventListener('DOMContentLoaded', function() {
-    const logsContainer = document.querySelector('.logs-container');
-    if (logsContainer && logsContainer.scrollHeight > logsContainer.clientHeight) {
-        logsContainer.scrollTop = logsContainer.scrollHeight;
-    }
-});
+    // Auto-scroll to bottom of logs if there are many entries
+    document.addEventListener('DOMContentLoaded', function () {
+        const logsContainer = document.querySelector('.logs-container');
+        if (logsContainer && logsContainer.scrollHeight > logsContainer.clientHeight) {
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+    });
 </script>
 {% endblock %}

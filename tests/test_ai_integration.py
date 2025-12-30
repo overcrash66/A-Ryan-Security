@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 # Add the parent directory to the Python path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ai_integration import get_ai_advice, predict_threats
+from security_modules.ai_integration import get_ai_advice, predict_threats
 
 @patch('ollama.Client')
 def test_get_ai_advice(mock_client_class):

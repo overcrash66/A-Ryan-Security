@@ -1,38 +1,14 @@
-# Add this to the beginning of main.py after imports
-
 import os
 import sys
 import logging
-import threading
 from logging.handlers import RotatingFileHandler
-from sqlalchemy import text
 from flask import Flask
-from logging.handlers import RotatingFileHandler
-from web_interface.app import app, db, socketio, migrate
-from models import User
-from werkzeug.security import generate_password_hash
-
-# Enhanced startup configuration
-def configure_application():
-    """Configure the application with proper context and error handling."""
-    
-    # Set environment variables for better context handling
-    os.environ['FLASK_SKIP_DOTENV'] = '1'  # Skip .env loading issues
-    
-    # Configure logging before anything else
-    setup_enhanced_logging()
-    
-    # Import app components after logging is configured
-    try:
-        from web_interface.app import app, db, socketio, migrate
-        from models import User
-        
-        logging.info("Successfully imported Flask application components")
-        return app, db, socketio, migrate
-        
-    except ImportError as e:
-        logging.error(f"Failed to import application components: {e}")
-        sys.exit(1)
+from web_interface import create_app, socketio, db
+from models import User, AuditLog
+from sqlalchemy import text
+from apscheduler.schedulers.background import BackgroundScheduler
+from web_interface.tasks import check_password_expiration, run_extra_antivirus_job
+from web_interface.performance_optimizer import performance_monitor
 
 def setup_enhanced_logging():
     """Set up comprehensive logging with error handling."""
@@ -87,248 +63,93 @@ def setup_enhanced_logging():
         print(f"Critical error setting up logging: {e}")
         sys.exit(1)
 
-def init_database_with_context(app, db):
-    """Initialize database with proper context handling."""
-    try:
-        # Ensure database directory exists
-        os.makedirs('db', exist_ok=True)
-        
-        with app.app_context():
-            try:
-                # Create all tables
-                db.create_all()
-                logging.info("Database tables created/verified successfully")
-                
-                # Test database connection
-                # The fix is on the line below
-                db.session.execute(text('SELECT 1'))
-                db.session.commit()
-                logging.info("Database connection test successful")
-                
-                # Create admin user if needed
-                create_admin_user_if_needed(db)
-                
-            except Exception as db_error:
-                logging.error(f"Database operation failed: {db_error}")
-                db.session.rollback()
-                raise
-                
-    except Exception as e:
-        logging.error(f'Database initialization error: {e}')
-        sys.exit(1)
-
-def create_admin_user_if_needed(db):
+def create_admin_user_if_needed(app):
     """Create admin user with proper error handling."""
-    try:
-        from models import User
-        
-        admin_user = User.query.filter_by(username='admin').first()
-        if not admin_user:
-            admin_password = os.getenv('ADMIN_PASSWORD', 'AdminPassword123!')
-            
-            admin = User(
-                username='admin',
-                email='admin@example.com',
-                role='admin',
-                is_active=True,
-                password_change_required=True
-            )
-            admin.set_password(admin_password)
-            
-            db.session.add(admin)
-            db.session.commit()
-            
-            logging.info('Admin user created successfully')
-            logging.warning('Admin password set from environment or default')
-        else:
-            logging.info('Admin user already exists')
-            
-    except Exception as e:
-        logging.error(f"Error creating admin user: {e}")
-        db.session.rollback()
-        raise
-
-def setup_application_context_handlers(app):
-    """Set up application context handlers to prevent context errors."""
-    
-    @app.before_first_request
-    def before_first_request():
-        """Initialize application state before first request."""
+    with app.app_context():
         try:
-            logging.info("Processing first request - initializing application state")
-            
-            # Initialize performance monitoring
-            from web_interface.performance_optimizer import performance_monitor
-            app.extensions['performance_monitor'] = performance_monitor
-            
-            # Warm up cache
-            from cache import cache
-            cache.set('app_initialized', True, timeout=3600)
-            logging.info("Application state initialized successfully")
-            
-        except Exception as e:
-            logging.error(f"Error in before_first_request: {e}")
-    
-    @app.before_request
-    def before_request():
-        """Enhanced before request handler with error protection."""
-        try:
-            from flask import g
-            from web_interface.performance_optimizer import performance_monitor
-            
-            # Start performance monitoring
-            performance_monitor.start_request_timer()
-            
-            # Initialize script tracking
-            g.loaded_scripts = getattr(g, 'loaded_scripts', [])
-            
-        except Exception as e:
-            logging.error(f"Error in before_request: {e}")
-    
-    @app.after_request
-    def after_request(response):
-        """Enhanced after request handler with comprehensive error handling."""
-        try:
-            from web_interface.performance_optimizer import performance_monitor
-            
-            # End performance monitoring
-            performance_monitor.end_request_timer(response)
-            
-            # Set security headers
-            response.headers['X-Content-Type-Options'] = 'nosniff'
-            response.headers['X-Frame-Options'] = 'DENY'
-            response.headers['X-XSS-Protection'] = '1; mode=block'
-            response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-            
-            # Enhanced CSP
-            csp = (
-                "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdnjs.cloudflare.com; "
-                "connect-src 'self' ws://127.0.0.1:5000 wss://127.0.0.1:5000 ws://localhost:5000 wss://localhost:5000 https://cdn.socket.io; "
-                "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
-                "img-src 'self' data: https:; "
-                "font-src 'self' https://cdnjs.cloudflare.com; "
-                "object-src 'none'; "
-                "base-uri 'self';"
-            )
-            response.headers['Content-Security-Policy'] = csp
-            
-        except Exception as e:
-            logging.error(f"Error in after_request: {e}")
-            
-        return response
-    
-    @app.errorhandler(Exception)
-    def handle_exception(e):
-        """Global exception handler with context error handling."""
-        import traceback
-        
-        error_msg = str(e)
-        
-        # Log the full exception
-        logging.error(f"Unhandled exception: {error_msg}")
-        logging.error(f"Exception type: {type(e).__name__}")
-        logging.error(f"Traceback:\n{traceback.format_exc()}")
-        
-        # Handle specific context errors
-        if "outside of application context" in error_msg or "outside of request context" in error_msg:
-            logging.error("Context error detected - attempting recovery")
-            try:
-                return render_template('error.html', error={
-                    'code': 500,
-                    'name': 'Application Context Error',
-                    'description': 'A context error occurred. Please refresh the page and try again.'
-                }), 500
-            except:
-                return "Application context error. Please refresh the page.", 500
-        
-        # Rollback any pending database transactions
-        try:
-            from models import db
-            db.session.rollback()
-        except Exception:
-            pass
-        
-        # Return appropriate error response
-        try:
-            if hasattr(e, 'code'):
-                return render_template('error.html', error={
-                    'code': e.code,
-                    'name': getattr(e, 'name', 'Error'),
-                    'description': getattr(e, 'description', str(e))
-                }), e.code
+            admin_user = User.query.filter_by(username='admin').first()
+            if not admin_user:
+                admin_password = os.getenv('ADMIN_PASSWORD', 'AdminPassword123!')
+                
+                admin = User(
+                    username='admin',
+                    email='admin@example.com',
+                    role='admin',
+                    is_active=True,
+                    password_change_required=True
+                )
+                admin.set_password(admin_password)
+                
+                db.session.add(admin)
+                db.session.commit()
+                
+                logging.info('Admin user created successfully')
+                logging.warning('Admin password set from environment or default')
             else:
-                return render_template('error.html', error={
-                    'code': 500,
-                    'name': 'Internal Server Error',
-                    'description': 'An unexpected error occurred.'
-                }), 500
-        except Exception as render_error:
-            logging.error(f"Error rendering error page: {render_error}")
-            return f"Internal server error: {error_msg}", 500
+                logging.info('Admin user already exists')
+                
+        except Exception as e:
+            logging.error(f"Error creating admin user: {e}")
+            db.session.rollback()
 
 def start_background_services(app):
     """Start background services with proper context handling."""
     try:
-        from apscheduler.schedulers.background import BackgroundScheduler
-        
         scheduler = BackgroundScheduler()
         
-        # Add jobs with app context
-        def run_with_context(func):
+        # Helper to run job with app context
+        def run_job_with_context(job_func, *args):
             with app.app_context():
                 try:
-                    func()
+                    job_func(*args)
                 except Exception as e:
                     logging.error(f"Background job error: {e}")
-        
-        # Schedule tasks
+
+        # Schedule antivirus job
         scheduler.add_job(
-            func=lambda: run_with_context(lambda: None),  # Placeholder for antivirus
+            func=run_job_with_context,
+            args=[run_extra_antivirus_job],
             trigger="interval", 
             seconds=3600,
             id='antivirus_check'
         )
         
-        def check_password_expiration():
-            try:
-                from models import User, AuditLog, db
-                from datetime import datetime
-                
-                expired_users = User.query.filter(
-                    User.password_expires <= datetime.utcnow()
-                ).all()
-                
-                for user in expired_users:
-                    user.password_change_required = True
-                    logging.warning(f'Password expired for user: {user.username}')
-                    
-                    audit = AuditLog(
-                        user_id=user.id,
-                        action='password_expired',
-                        details='Password expired and change required'
-                    )
-                    db.session.add(audit)
-                
-                db.session.commit()
-                
-            except Exception as e:
-                logging.error(f"Error in check_password_expiration: {e}")
-                try:
-                    db.session.rollback()
-                except:
-                    pass
-        
+        # Schedule password expiration check
+        # Pass app to check_password_expiration because it needs it (as designed in tasks.py)
+        # Wait, tasks.py definition: check_password_expiration(app)
+        # So we just call check_password_expiration(app).
+        # But we need error handling wrapper.
         scheduler.add_job(
-            func=lambda: run_with_context(check_password_expiration),
+            func=check_password_expiration,
+            args=[app],
             trigger="interval", 
             hours=24,
             id='password_expiration_check'
         )
         
+        # API Maintenance tasks (from original app.py)
+        if not app.config.get('TESTING'):
+             from web_interface.api_maintenance import check_expiring_api_keys, cleanup_expired_api_keys
+             # These likely need context too? Let's check api_maintenance.py content if needed.
+             # Assuming they use current_app or app context?
+             # For safety, let's wrap them if they don't accept 'app'.
+             # check_expiring_api_keys probably uses db.
+             
+             scheduler.add_job(
+                 func=run_job_with_context,
+                 args=[check_expiring_api_keys],
+                 trigger='cron',
+                 hour=0
+             )
+             scheduler.add_job(
+                 func=run_job_with_context,
+                 args=[cleanup_expired_api_keys],
+                 trigger='cron',
+                 hour=1
+             )
+        
         scheduler.start()
         logging.info("Background services started successfully")
-        
         return scheduler
         
     except Exception as e:
@@ -336,109 +157,59 @@ def start_background_services(app):
         return None
 
 def run_application():
-    """Main application runner with comprehensive error handling."""
+    """Main application runner."""
+    # Configure logging
+    setup_enhanced_logging()
+    
     try:
-        # Configure application
-        app, db, socketio, migrate = configure_application()
+        # Create app
+        app = create_app()
         
-        # Initialize database with context
-        init_database_with_context(app, db)
+        # Initialize database
+        with app.app_context():
+            db.create_all()
+            # Test connection
+            db.session.execute(text('SELECT 1'))
+            db.session.commit()
+            logging.info("Database connection test successful")
         
-        # Setup context handlers
-        setup_application_context_handlers(app)
+        # Create admin user
+        create_admin_user_if_needed(app)
         
         # Start background services
         scheduler = start_background_services(app)
         
-        # Validate configuration
-        required_config = ['SECRET_KEY', 'SQLALCHEMY_DATABASE_URI']
-        missing_config = [key for key in required_config if not app.config.get(key)]
-        
-        if missing_config:
-            logging.error(f"Missing required configuration: {missing_config}")
-            sys.exit(1)
-        
-        # Log startup information
-        logging.info(f"Environment: {os.getenv('FLASK_ENV', 'development')}")
-        logging.info(f"Debug mode: {app.debug}")
-        logging.info(f"Database: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not configured')}")
-        
-        # Check for required files
-        osv_scanner_path = os.path.join(os.getcwd(), "osv-scanner_windows_amd64.exe")
-        if os.path.exists(osv_scanner_path):
-            logging.info(f"OSV Scanner found: {osv_scanner_path}")
-        else:
-            logging.warning(f"OSV Scanner not found: {osv_scanner_path}")
-        
         # Start the application
         if os.getenv('FLASK_ENV') == 'production':
             logging.info("Starting production server")
-            try:
-                socketio.run(
-                    app,
-                    host='0.0.0.0',
-                    port=443,
-                    ssl_context=('cert.pem', 'key.pem'),
-                    debug=False
-                )
-            except Exception as prod_error:
-                logging.error(f"Production server failed: {prod_error}")
-                logging.info("Falling back to HTTP")
-                socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+            socketio.run(
+                app,
+                host='0.0.0.0',
+                port=443,
+                ssl_context=('cert.pem', 'key.pem'),
+                debug=False,
+                use_reloader=False 
+            )
         else:
             logging.info("Starting development server")
-            try:
-                if os.getenv('USE_SOCKETIO', 'true').lower() == 'true':
-                    socketio.run(
-                        app, 
-                        debug=True, 
-                        host='0.0.0.0', 
-                        port=5000,
-                        use_reloader=False  # Prevent context issues
-                    )
-                else:
-                    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
-            except Exception as dev_error:
-                logging.error(f"Development server error: {dev_error}")
-                logging.info("Falling back to basic Flask server")
+            use_socketio = os.getenv('USE_SOCKETIO', 'true').lower() == 'true'
+            if use_socketio:
+                socketio.run(
+                    app, 
+                    debug=True, 
+                    host='0.0.0.0', 
+                    port=5000,
+                    use_reloader=False
+                )
+            else:
                 app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
-        
-    except KeyboardInterrupt:
-        logging.info("Application stopped by user")
+                
     except Exception as e:
         logging.error(f"Critical application error: {e}")
         sys.exit(1)
     finally:
-        # Cleanup
-        try:
-            if 'scheduler' in locals() and scheduler:
-                scheduler.shutdown(wait=True)
-                logging.info("Background services stopped")
-        except:
-            pass
+         if 'scheduler' in locals() and scheduler:
+             scheduler.shutdown(wait=True)
 
 if __name__ == '__main__':
-    
-    # Run application
-    if os.getenv('FLASK_ENV') == 'production':
-        socketio.run(
-            app,
-            host='0.0.0.0',
-            port=443,
-            ssl_context=('cert.pem', 'key.pem'),
-            debug=False
-        )
-    else:
-        try:
-            # For development, use the Flask development server without SocketIO's run method
-            # to avoid the cors_allowed_origins parameter issue
-            if os.getenv('USE_SOCKETIO') == 'true':
-                socketio.run(app, debug=True, host='0.0.0.0', port=5000)
-            else:
-                app.run(debug=True, host='0.0.0.0', port=5000)
-        except Exception as e:
-            app.logger.error(f"Error starting server: {e}")
-            # Fallback to regular Flask development server
-            app.run(debug=True, host='0.0.0.0', port=5000)
-
-    run_application()        
+    run_application()

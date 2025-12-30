@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 # Add the parent directory to the Python path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from antivirus import scan_directory, extra_antivirus_layer
+from security_modules.antivirus import scan_directory, extra_antivirus_layer
 
 @patch('subprocess.run')
 def test_scan_directory_success(mock_run):
@@ -20,10 +20,9 @@ def test_scan_directory_success(mock_run):
     result = scan_directory('C:\\Test\\Path')
     assert "Scan completed successfully" in result
     mock_run.assert_called_with(
-        'powershell Start-MpScan -ScanType CustomScan -ScanPath "C:\\Test\\Path"',
+        ["powershell", "-Command", "Start-MpScan -ScanType CustomScan -ScanPath 'C:\\Test\\Path'"],
         capture_output=True,
-        text=True,
-        shell=True
+        text=True
     )
 
 @patch('subprocess.run')
@@ -62,7 +61,10 @@ def test_extra_antivirus_layer_partial_failure(mock_getlogin, mock_run):
     mock_getlogin.return_value = 'testuser'
     
     def run_side_effect(*args, **kwargs):
-        if 'Windows\\Temp' in args[0]:
+        # args[0] is now the command list on index 0
+        cmd_list = args[0]
+        # The command string is at index 2 of the list
+        if len(cmd_list) > 2 and 'Windows\\Temp' in cmd_list[2]:
             raise Exception("Scan failed")
         mock_process = MagicMock()
         mock_process.stdout = "Success"
@@ -90,5 +92,7 @@ def test_scan_directory_with_spaces(mock_run):
     # Test path with spaces
     result = scan_directory('C:\\Test Path\\With Spaces')
     assert "Scan completed" in result
-    # Verify the path was properly quoted
-    assert 'Path\\With Spaces"' in mock_run.call_args[0][0]
+    # Verify the path was properly quoted in the command string (index 2 of args list)
+    cmd_list = mock_run.call_args[0][0]
+    assert "Start-MpScan" in cmd_list[2]
+    assert "'C:\\Test Path\\With Spaces'" in cmd_list[2]

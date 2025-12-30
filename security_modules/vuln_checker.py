@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 from datetime import datetime
 from flask_login import current_user
+from flask import current_app
+from models import db, ScanHistory
 
 def get_osv_scanner_version(osv_scanner_path):
     """Get OSV-Scanner version."""
@@ -75,9 +77,6 @@ def save_scan_history(scan_path, status, vulnerabilities_count, scan_duration, o
         error_message (str, optional): Error message if scan failed
     """
     try:
-        from models import db, ScanHistory
-        from flask import current_app
-        
         # Only save if we have an application context and user
         if current_app and hasattr(current_user, 'id') and current_user.is_authenticated:
             scan_record = ScanHistory(
@@ -90,7 +89,7 @@ def save_scan_history(scan_path, status, vulnerabilities_count, scan_duration, o
                 raw_results=json.dumps(raw_results) if raw_results else None,
                 error_message=error_message
             )
-            
+                
             db.session.add(scan_record)
             db.session.commit()
             logging.info(f"Saved scan history record ID: {scan_record.id}")

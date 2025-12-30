@@ -308,4 +308,3 @@ def safe_network_analysis(count=10):
     except Exception as e:
         logging.error(f"Error in safe network analysis: {e}")
         return {'error': str(e), 'count': count}
-        return {'error': str(e)}
