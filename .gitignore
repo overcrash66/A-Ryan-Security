@@ -182,3 +182,4 @@ cython_debug/
 osv-scanner_windows_amd64.exe
 App_Run.bat
 /web_interface/static/reports
+/db

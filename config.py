@@ -17,6 +17,19 @@ class Config:
 
     # Database settings
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'sqlite:///app.db'
+    
+    # Validation/Conversion for SQLite paths (Fix for Windows relative path issues)
+    if SQLALCHEMY_DATABASE_URI.startswith('sqlite:///'):
+        db_path = SQLALCHEMY_DATABASE_URI.replace('sqlite:///', '')
+        # Check if it's a relative path (not starting with / or drive letter)
+        if not os.path.isabs(db_path):
+             # Convert to absolute path
+             abs_path = os.path.abspath(db_path)
+             # SQLAlchemy requires forward slashes even on Windows for URIs
+             # but on Windows os.path.abspath uses backslashes
+             abs_path = abs_path.replace('\\', '/')
+             SQLALCHEMY_DATABASE_URI = f'sqlite:///{abs_path}'
+             
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_size': int(os.getenv('DB_POOL_SIZE', '10')),
