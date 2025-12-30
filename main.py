@@ -167,6 +167,20 @@ def run_application():
         
         # Initialize database
         with app.app_context():
+            # Ensure database directory exists for SQLite
+            db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+            if db_uri.startswith('sqlite:///'):
+                db_path = db_uri.replace('sqlite:///', '')
+                # Handle cases where path might be relative or absolute
+                # If it's pure filename like 'app.db', dirname is empty
+                db_dir = os.path.dirname(db_path)
+                if db_dir and not os.path.exists(db_dir):
+                    try:
+                        os.makedirs(db_dir)
+                        logging.info(f"Created database directory: {db_dir}")
+                    except OSError as e:
+                        logging.error(f"Failed to create database directory {db_dir}: {e}")
+
             db.create_all()
             # Test connection
             db.session.execute(text('SELECT 1'))

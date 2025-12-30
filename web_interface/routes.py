@@ -661,14 +661,15 @@ def login():
             # Reset failed attempts on successful login
             cache.delete(f'login_attempts_{username}')
             
+            # Login the user first
+            login_user(user, duration=timedelta(hours=1))
+            current_app.logger.info(f"Successful login for {username}, session: {session}")
+            
             # Check if password change required
             if user.password_change_required:
                 flash('Your password must be changed before proceeding.', 'warning')
                 current_app.logger.info(f"Redirecting {username} to change_password")
                 return redirect(url_for('main.change_password'))
-            
-            login_user(user, duration=timedelta(hours=1))
-            current_app.logger.info(f"Successful login for {username}, session: {session}")
             
             next_page = request.args.get('next')
             if next_page:
