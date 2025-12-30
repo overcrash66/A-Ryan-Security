@@ -1,79 +1,80 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Animated Background -->
-  <div class="animated-background">
-      <div class="floating-particles">
-          <div class="particle"></div>
-          <div class="particle"></div>
-          <div class="particle"></div>
-          <div class="particle"></div>
-          <div class="particle"></div>
-          <div class="particle"></div>
-          <div class="particle"></div>
-          <div class="particle"></div>
-          <div class="particle"></div>
-          <div class="particle"></div>
-      </div>
-      <div class="gradient-overlay"></div>
-  </div>
+<!-- Animated Background -->
+<div class="animated-background">
+    <div class="floating-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+    <div class="gradient-overlay"></div>
+</div>
 
-  <div class="dashboard-header">
-      <h1>Security Dashboard</h1>
-      <p class="dashboard-subtitle">Monitor your system's security status in real-time</p>
-  </div>
+<div class="dashboard-header">
+    <h1>Security Dashboard</h1>
+    <p class="dashboard-subtitle">Monitor your system's security status in real-time</p>
+</div>
 
-  <div class="dashboard-grid">
-      <div class="dashboard-card">
-          <h3><span class="card-icon">🛡️</span>System Status</h3>
-          <p>Get a comprehensive overview of all security components including antivirus, firewall, and network status.</p>
-          <a href="{{ url_for('status') }}" class="btn btn-primary">View Status</a>
-      </div>
+<div class="dashboard-grid">
+    <div class="dashboard-card">
+        <h3><span class="card-icon">🛡️</span>System Status</h3>
+        <p>Get a comprehensive overview of all security components including antivirus, firewall, and network status.
+        </p>
+        <a href="{{ url_for('main.status') }}" class="btn btn-primary">View Status</a>
+    </div>
 
-      <div class="dashboard-card">
-          <h3><span class="card-icon">📊</span>Security Reports</h3>
-          <p>Generate detailed PDF reports with AI-powered recommendations and security analysis.</p>
-          <a href="{{ url_for('report') }}" class="btn btn-primary">Generate Report</a>
-      </div>
+    <div class="dashboard-card">
+        <h3><span class="card-icon">📊</span>Security Reports</h3>
+        <p>Generate detailed PDF reports with AI-powered recommendations and security analysis.</p>
+        <a href="{{ url_for('main.report') }}" class="btn btn-primary">Generate Report</a>
+    </div>
 
-      <div class="dashboard-card">
-          <h3><span class="card-icon">📋</span>History & Logs</h3>
-          <p>Review system logs, security issues, and AI-powered threat predictions based on historical data.</p>
-          <a href="{{ url_for('history') }}" class="btn btn-primary">View History</a>
-      </div>
+    <div class="dashboard-card">
+        <h3><span class="card-icon">📋</span>History & Logs</h3>
+        <p>Review system logs, security issues, and AI-powered threat predictions based on historical data.</p>
+        <a href="{{ url_for('main.history') }}" class="btn btn-primary">View History</a>
+    </div>
 
-      <div class="dashboard-card">
-          <h3><span class="card-icon">🔧</span>Account Settings</h3>
-          <p>Manage your account settings and change your password for enhanced security.</p>
-          <a href="{{ url_for('change_password') }}" class="btn btn-secondary">Change Password</a>
-      </div>
-  </div>
+    <div class="dashboard-card">
+        <h3><span class="card-icon">🔧</span>Account Settings</h3>
+        <p>Manage your account settings and change your password for enhanced security.</p>
+        <a href="{{ url_for('main.change_password') }}" class="btn btn-secondary">Change Password</a>
+    </div>
+</div>
 
-  <style>
-  .dashboard-header {
-      text-align: center;
-      margin-bottom: 3rem;
-      position: relative;
-      z-index: 2;
-  }
+<style>
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        position: relative;
+        z-index: 2;
+    }
 
-  .dashboard-header h1 {
-      font-size: 2.5rem;
-      color: #495057;
-      margin-bottom: 0.5rem;
-      font-weight: 700;
-  }
+    .dashboard-header h1 {
+        font-size: 2.5rem;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+    }
 
-  .dashboard-subtitle {
-      font-size: 1.1rem;
-      color: #6c757d;
-      margin: 0;
-  }
+    .dashboard-subtitle {
+        font-size: 1.1rem;
+        color: #6c757d;
+        margin: 0;
+    }
 
-  .dashboard-grid {
-      position: relative;
-      z-index: 2;
-  }
-  </style>
+    .dashboard-grid {
+        position: relative;
+        z-index: 2;
+    }
+</style>
 
 {% endblock %}

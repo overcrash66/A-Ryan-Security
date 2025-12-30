@@ -8,13 +8,13 @@ from scapy.all import IP
 # Add the parent directory to the Python path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from network_analyzer import (
+from security_modules.network_analyzer import (
     Autoencoder, train_model, detect_anomaly, scan_network,
     extract_packet_features, analyze_traffic
 )
 
 from models import Issue, db
-from web_interface.app import app  # Import the Flask app for app_ctx
+
 
 def test_autoencoder():
     model = Autoencoder()
@@ -30,7 +30,7 @@ def test_train_model():
 
 @patch('models.db.session.bulk_save_objects')  # Updated path
 @patch('models.db.session.commit')  # Updated path
-def test_detect_anomaly(mock_commit, mock_bulk_save):
+def test_detect_anomaly(mock_commit, mock_bulk_save, app_ctx):
     # Train on normal data
     normal_train_data = torch.tensor([[0.1] * 5] * 10, dtype=torch.float32)
     train_model(normal_train_data)
@@ -97,38 +97,9 @@ def test_extract_packet_features_error():
     result = extract_packet_features(packet)
     assert result is None
 
-@pytest.fixture(autouse=True)
-def app_ctx():
-    from models import db
-    from flask import Flask
 
-    # Check if app has already handled first request
-    if hasattr(app, '_got_first_request') and app._got_first_request:
-        # Create a new test app instance instead of modifying the existing one
-        test_app = Flask(__name__)
-        test_app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        test_app.config['TESTING'] = True
-        test_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-        db.init_app(test_app)
-
-        with test_app.app_context():
-            db.create_all()
-            yield test_app
-            db.session.remove()
-            db.drop_all()
-    else:
-        # Original logic for when app hasn't been initialized yet
-        if 'sqlalchemy' in app.extensions:
-            del app.extensions['sqlalchemy']
-        db.init_app(app)
-        with app.app_context():
-            db.create_all()
-            yield
-            db.session.remove()
-            db.drop_all()
-
-@patch('network_analyzer.sniff')
+@patch('security_modules.network_analyzer.sniff')
 def test_analyze_traffic(mock_sniff, app_ctx):
     mock_sniff.return_value = []
 
@@ -136,7 +107,7 @@ def test_analyze_traffic(mock_sniff, app_ctx):
     assert isinstance(result, list)
     assert len(result) == 0
 
-@patch('network_analyzer.sniff')
+@patch('security_modules.network_analyzer.sniff')
 def test_analyze_traffic_error(mock_sniff, app_ctx):
     mock_sniff.side_effect = Exception("Network capture failed")
 

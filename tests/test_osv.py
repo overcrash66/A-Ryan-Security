@@ -4,7 +4,7 @@ import os
 import json
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from vuln_checker import scan_vulnerabilities
+from security_modules.vuln_checker import scan_vulnerabilities
 
 if __name__ == "__main__":
     vulns, osv_data = scan_vulnerabilities()

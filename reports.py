@@ -2,7 +2,7 @@
 import os
 from datetime import datetime, timezone, timedelta
 from flask import current_app
-from ai_integration import get_ai_advice, predict_threats, get_comprehensive_ai_analysis
+from security_modules.ai_integration import get_ai_advice, predict_threats, get_comprehensive_ai_analysis
 import re
 
 # Import pytz with fallback
@@ -18,7 +18,8 @@ try:
     from fpdf import FPDF
     FPDF_AVAILABLE = True
 except ImportError as e:
-    current_app.logger.error(f"FPDF import failed: {e}")
+    import logging
+    logging.getLogger(__name__).error(f"FPDF import failed: {e}")
     FPDF_AVAILABLE = False
     FPDF = None
 

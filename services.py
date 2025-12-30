@@ -9,6 +9,11 @@ from cache import cache
 from input_validation import InputValidator, validate_and_sanitize_scan_request
 from error_handlers import safe_database_operation, safe_scan_operation, log_security_event, SecurityError
 
+from security_modules.antivirus import extra_antivirus_layer
+from security_modules.vuln_checker import scan_vulnerabilities
+from security_modules.network_analyzer import scan_network, analyze_traffic
+from security_modules.process_scanner import scan_running_processes, get_system_services as _scan_get_system_services, get_startup_programs as _scan_get_startup_programs
+
 logger = logging.getLogger(__name__)
 
 class SecurityService:
@@ -29,9 +34,6 @@ class SecurityService:
         try:
             # Validate input
             validated_path = InputValidator.validate_scan_path(scan_path)
-
-            # Import here to avoid circular imports
-            from antivirus import extra_antivirus_layer
 
             # Perform scan
             results = extra_antivirus_layer()
@@ -56,9 +58,6 @@ class SecurityService:
         try:
             # Validate input
             validated_path = InputValidator.validate_scan_path(scan_path)
-
-            # Import here to avoid circular imports
-            from vuln_checker import scan_vulnerabilities
 
             # Perform scan
             vulns_data, osv_data = scan_vulnerabilities(scan_path=validated_path, save_history=save_history)
@@ -87,9 +86,6 @@ class SecurityService:
             # Validate input
             validated_host = InputValidator.validate_ip_address(host)
 
-            # Import here to avoid circular imports
-            from network_analyzer import scan_network, analyze_traffic
-
             # Perform network scan
             network_data = scan_network(host=validated_host)
 
@@ -117,9 +113,6 @@ class SecurityService:
     def perform_process_scan(self) -> Dict[str, Any]:
         """Perform process scan with proper error handling."""
         try:
-            # Import here to avoid circular imports
-            from process_scanner import scan_running_processes, get_system_services, get_startup_programs
-
             # Perform process scan
             processes = scan_running_processes()
 
@@ -302,8 +295,7 @@ class SecurityService:
 def get_system_services():
     """Get system services information."""
     try:
-        from process_scanner import get_system_services as _get_system_services
-        return _get_system_services()
+        return _scan_get_system_services()
     except Exception as e:
         logger.error(f"Error getting system services: {e}")
         return {'error': str(e), 'total_services': 0}
@@ -311,8 +303,7 @@ def get_system_services():
 def get_startup_programs():
     """Get startup programs information."""
     try:
-        from process_scanner import get_startup_programs as _get_startup_programs
-        return _get_startup_programs()
+        return _scan_get_startup_programs()
     except Exception as e:
         logger.error(f"Error getting startup programs: {e}")
         return {'error': str(e), 'total_startup_programs': 0}

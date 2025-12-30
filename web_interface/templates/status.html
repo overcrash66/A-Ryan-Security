@@ -11,154 +11,168 @@
 <div class="status-grid">
     <div class="status-card {{ 'error' if data.av.error else 'success' }}">
         <div class="status-header">
-            <h3><span class="status-indicator {{ 'offline' if data.av.error else 'online' }}"></span>Antivirus Protection</h3>
+            <h3><span class="status-indicator {{ 'offline' if data.av.error else 'online' }}"></span>Antivirus
+                Protection</h3>
         </div>
         <div class="status-content">
             {% if data.av.error %}
-                <p class="error-message">⚠️ Error: {{ data.av.error }}</p>
+            <p class="error-message">⚠️ Error: {{ data.av.error }}</p>
             {% elif data.av %}
-                <p class="status-message">✅ {{ data.av }}</p>
+            <p class="status-message">✅ {{ data.av }}</p>
             {% else %}
-                <p class="warning-message">⚠️ No antivirus data available</p>
+            <p class="warning-message">⚠️ No antivirus data available</p>
             {% endif %}
         </div>
     </div>
 
     <div class="status-card {{ 'error' if data.fw.error else 'success' }}">
         <div class="status-header">
-            <h3><span class="status-indicator {{ 'offline' if data.fw.error else 'online' }}"></span>Firewall Status</h3>
+            <h3><span class="status-indicator {{ 'offline' if data.fw.error else 'online' }}"></span>Firewall Status
+            </h3>
         </div>
         <div class="status-content">
             {% if data.fw.error %}
-                <p class="error-message">⚠️ Error: {{ data.fw.error }}</p>
+            <p class="error-message">⚠️ Error: {{ data.fw.error }}</p>
             {% elif data.fw %}
-                <p class="status-message">🛡️ {{ data.fw }}</p>
+            <p class="status-message">🛡️ {{ data.fw }}</p>
             {% else %}
-                <p class="warning-message">⚠️ No firewall data available</p>
+            <p class="warning-message">⚠️ No firewall data available</p>
             {% endif %}
         </div>
     </div>
 
     <div class="status-card {{ 'error' if data.osv.error else ('warning' if data.vulns else 'success') }}">
         <div class="status-header">
-            <h3><span class="status-indicator {{ 'offline' if data.osv.error else ('warning' if data.vulns else 'online') }}"></span>Project dependencies vulnerability Scan</h3>
+            <h3><span
+                    class="status-indicator {{ 'offline' if data.osv.error else ('warning' if data.vulns else 'online') }}"></span>Project
+                dependencies vulnerability Scan</h3>
             <div class="scan-controls">
-                <button onclick="showFolderSelector()" class="btn btn-sm btn-outline" style="color: #1a202c;">📁 Select Folder</button>
+                <button onclick="showFolderSelector()" class="btn btn-sm btn-outline" style="color: #1a202c;">📁 Select
+                    Folder</button>
             </div>
         </div>
         <div class="status-content">
             {% if session.preferred_scan_path %}
-                <div class="current-scan-path">
-                    <p class="scan-path-info">📂 Current scan path: <code>{{ session.preferred_scan_path }}</code></p>
-                </div>
+            <div class="current-scan-path">
+                <p class="scan-path-info">📂 Current scan path: <code>{{ session.preferred_scan_path }}</code></p>
+            </div>
             {% endif %}
-            
+
             {% if data.osv.error %}
-                <p class="error-message">❌ Error: {{ data.osv.error }}</p>
-                {% if data.osv.stderr %}
-                    <p class="error-details">Details: {{ data.osv.stderr }}</p>
-                {% endif %}
-                <div class="scan-help">
-                    <p><small>💡 Try setting a specific scan folder using the "Select Folder" button above, or visit <a href="/debug/vuln_scan" target="_blank">debug scan</a> for troubleshooting.</small></p>
-                </div>
+            <p class="error-message">❌ Error: {{ data.osv.error }}</p>
+            {% if data.osv.stderr %}
+            <p class="error-details">Details: {{ data.osv.stderr }}</p>
+            {% endif %}
+            <div class="scan-help">
+                <p><small>💡 Try setting a specific scan folder using the "Select Folder" button above, or visit <a
+                            href="/debug/vuln_scan" target="_blank">debug scan</a> for troubleshooting.</small></p>
+            </div>
             {% elif data.vulns or data.osv.results or data.osv.raw_output %}
-                {% if data.vulns %}
-                    {% for app, count in data.vulns.items() %}
-                        <p class="vulnerability-item">🔍 {{ app }}: <span class="vuln-count">{{ count }} vulnerabilities</span></p>
-                    {% endfor %}
-                {% endif %}
-                {% if data.osv.results %}
-                    <p class="osv-results">📊 OSV: {{ data.osv.results }}</p>
-                {% endif %}
-                {% if data.osv.raw_output %}
-                    <div class="osv-raw-output">
-                        <details>
-                            <summary>📋 Detailed Scan Results</summary>
-                            <pre class="scan-output">{{ data.osv.raw_output }}</pre>
-                        </details>
-                    </div>
-                {% endif %}
-                {% if not data.vulns and not data.osv.raw_output and data.osv.results %}
-                    <p class="status-message">✅ No vulnerabilities detected in scan</p>
-                {% endif %}
+            {% if data.vulns %}
+            {% for app, count in data.vulns.items() %}
+            <p class="vulnerability-item">🔍 {{ app }}: <span class="vuln-count">{{ count }} vulnerabilities</span></p>
+            {% endfor %}
+            {% endif %}
+            {% if data.osv.results %}
+            <p class="osv-results">📊 OSV: {{ data.osv.results }}</p>
+            {% endif %}
+            {% if data.osv.raw_output %}
+            <div class="osv-raw-output">
+                <details>
+                    <summary>📋 Detailed Scan Results</summary>
+                    <pre class="scan-output">{{ data.osv.raw_output }}</pre>
+                </details>
+            </div>
+            {% endif %}
+            {% if not data.vulns and not data.osv.raw_output and data.osv.results %}
+            <p class="status-message">✅ No vulnerabilities detected in scan</p>
+            {% endif %}
             {% else %}
-                <p class="warning-message">⚠️ No vulnerability data available</p>
-                <div class="scan-help">
-                    <p><small>💡 This usually means the scan hasn't run yet or failed. Try setting a specific scan folder using the "Select Folder" button above.</small></p>
-                </div>
+            <p class="warning-message">⚠️ No vulnerability data available</p>
+            <div class="scan-help">
+                <p><small>💡 This usually means the scan hasn't run yet or failed. Try setting a specific scan folder
+                        using the "Select Folder" button above.</small></p>
+            </div>
             {% endif %}
         </div>
     </div>
 
     <div class="status-card {{ 'error' if data.net.error else 'success' }}">
         <div class="status-header">
-            <h3><span class="status-indicator {{ 'offline' if data.net.error else 'online' }}"></span>Network Security</h3>
+            <h3><span class="status-indicator {{ 'offline' if data.net.error else 'online' }}"></span>Network Security
+            </h3>
         </div>
         <div class="status-content">
             {% if data.net.error %}
-                <p class="error-message">❌ Error: {{ data.net.error }}</p>
+            <p class="error-message">❌ Error: {{ data.net.error }}</p>
             {% elif data.net %}
-                <p class="status-message">🌐 {{ data.net }}</p>
+            <p class="status-message">🌐 {{ data.net }}</p>
             {% else %}
-                <p class="warning-message">⚠️ No network data available</p>
+            <p class="warning-message">⚠️ No network data available</p>
             {% endif %}
         </div>
     </div>
 
     <div class="status-card">
         <div class="status-header">
-            <h3><span class="status-indicator {{ 'online' if data.traffic else 'warning' }}"></span>Traffic Analysis</h3>
+            <h3><span class="status-indicator {{ 'online' if data.traffic else 'warning' }}"></span>Traffic Analysis
+            </h3>
         </div>
         <div class="status-content">
             {% if data.traffic %}
-                <div class="traffic-list">
-                    {% for p in data.traffic %}
-                        <p class="traffic-item">📡 {{ p }}</p>
-                    {% endfor %}
-                </div>
+            <div class="traffic-list">
+                {% for p in data.traffic %}
+                <p class="traffic-item">📡 {{ p }}</p>
+                {% endfor %}
+            </div>
             {% else %}
-                <p class="warning-message">⚠️ No traffic data available</p>
+            <p class="warning-message">⚠️ No traffic data available</p>
             {% endif %}
         </div>
     </div>
 
     <!-- Process Security Card -->
-    <div class="status-card {{ 'error' if data.processes.error else ('warning' if data.processes.suspicious_processes > 0 else 'success') }}">
+    <div
+        class="status-card {{ 'error' if data.processes.error else ('warning' if data.processes.suspicious_processes > 0 else 'success') }}">
         <div class="status-header">
-            <h3><span class="status-indicator {{ 'offline' if data.processes.error else ('warning' if data.processes.suspicious_processes > 0 else 'online') }}"></span>Process Security</h3>
+            <h3><span
+                    class="status-indicator {{ 'offline' if data.processes.error else ('warning' if data.processes.suspicious_processes > 0 else 'online') }}"></span>Process
+                Security</h3>
             <div class="scan-controls">
-                <a href="{{ url_for('process_scan') }}" class="btn btn-sm btn-outline">🔍 View Details</a>
+                <a href="{{ url_for('main.process_scan') }}" class="btn btn-sm btn-outline">🔍 View Details</a>
             </div>
         </div>
         <div class="status-content">
             {% if data.processes.error %}
-                <p class="error-message">❌ Error: {{ data.processes.error }}</p>
+            <p class="error-message">❌ Error: {{ data.processes.error }}</p>
             {% elif data.processes %}
-                <div class="process-summary">
-                    <p class="status-message">💻 Scanned {{ data.processes.total_processes or 0 }} processes</p>
-                    {% if data.processes.suspicious_processes > 0 %}
-                        <p class="warning-message">⚠️ {{ data.processes.suspicious_processes }} suspicious processes detected</p>
-                    {% else %}
-                        <p class="status-message">✅ No suspicious processes detected</p>
-                    {% endif %}
-                    
-                    {% if data.processes.security_analysis %}
-                        <div class="process-risk-badge">
-                            <span class="risk-badge {{ 'high' if data.processes.security_analysis.risk_level == 'HIGH' else ('medium' if data.processes.security_analysis.risk_level == 'MEDIUM' else 'low') }}">
-                                Risk: {{ data.processes.security_analysis.risk_level }}
-                            </span>
-                        </div>
-                    {% endif %}
-                    
-                    <div class="process-stats">
-                        <small>
-                            📊 High Resource: {{ data.processes.high_resource_processes or 0 }} |
-                            🌐 Network Active: {{ data.processes.network_processes or 0 }}
-                        </small>
-                    </div>
+            <div class="process-summary">
+                <p class="status-message">💻 Scanned {{ data.processes.total_processes or 0 }} processes</p>
+                {% if data.processes.suspicious_processes > 0 %}
+                <p class="warning-message">⚠️ {{ data.processes.suspicious_processes }} suspicious processes detected
+                </p>
+                {% else %}
+                <p class="status-message">✅ No suspicious processes detected</p>
+                {% endif %}
+
+                {% if data.processes.security_analysis %}
+                <div class="process-risk-badge">
+                    <span
+                        class="risk-badge {{ 'high' if data.processes.security_analysis.risk_level == 'HIGH' else ('medium' if data.processes.security_analysis.risk_level == 'MEDIUM' else 'low') }}">
+                        Risk: {{ data.processes.security_analysis.risk_level }}
+                    </span>
                 </div>
+                {% endif %}
+
+                <div class="process-stats">
+                    <small>
+                        📊 High Resource: {{ data.processes.high_resource_processes or 0 }} |
+                        🌐 Network Active: {{ data.processes.network_processes or 0 }}
+                    </small>
+                </div>
+            </div>
             {% else %}
-                <p class="warning-message">⚠️ No process data available</p>
+            <p class="warning-message">⚠️ No process data available</p>
             {% endif %}
         </div>
     </div>
@@ -171,30 +185,30 @@
             <div class="ai-badges">
                 <span class="ai-badge">Powered by AI</span>
                 {% if data.vulns or data.osv.raw_output %}
-                    <span class="ai-badge vulnerability-badge">Vulnerability Analysis</span>
+                <span class="ai-badge vulnerability-badge">Vulnerability Analysis</span>
                 {% endif %}
             </div>
         </div>
         <div class="ai-content">
             {% if advice %}
-                <div class="ai-advice">
-                    {% if data.vulns or data.osv.raw_output %}
-                        <div class="vulnerability-context">
-                            <h4>🔍 Vulnerability Context</h4>
-                            {% if data.vulns %}
-                                <p><strong>Vulnerabilities Found:</strong>
-                                {% set total_vulns = (data.vulns.values() | map('int') | sum) %}
-                                {{ total_vulns }} total across {{ data.vulns.keys() | length }} packages</p>
-                            {% endif %}
-                            {% if data.osv.raw_output and 'Critical' in data.osv.raw_output %}
-                                <p class="critical-alert">⚠️ <strong>Critical vulnerabilities detected!</strong></p>
-                            {% endif %}
-                        </div>
+            <div class="ai-advice">
+                {% if data.vulns or data.osv.raw_output %}
+                <div class="vulnerability-context">
+                    <h4>🔍 Vulnerability Context</h4>
+                    {% if data.vulns %}
+                    <p><strong>Vulnerabilities Found:</strong>
+                        {% set total_vulns = (data.vulns.values() | map('int') | sum) %}
+                        {{ total_vulns }} total across {{ data.vulns.keys() | length }} packages</p>
                     {% endif %}
-                    <div class="ai-analysis">{{ advice | replace('\n', '<br>') | safe }}</div>
+                    {% if data.osv.raw_output and 'Critical' in data.osv.raw_output %}
+                    <p class="critical-alert">⚠️ <strong>Critical vulnerabilities detected!</strong></p>
+                    {% endif %}
                 </div>
+                {% endif %}
+                <div class="ai-analysis">{{ advice | replace('\n', '<br>') | safe }}</div>
+            </div>
             {% else %}
-                <p class="no-advice">🔄 Generating comprehensive AI recommendations...</p>
+            <p class="no-advice">🔄 Generating comprehensive AI recommendations...</p>
             {% endif %}
         </div>
     </div>
@@ -208,7 +222,7 @@
             <span class="close" onclick="closeFolderSelector()">&times;</span>
         </div>
         <div class="modal-body">
-            <form id="folderSelectorForm" method="POST" action="{{ url_for('set_scan_folder') }}">
+            <form id="folderSelectorForm" method="POST" action="{{ url_for('main.set_scan_folder') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <label for="scan_path">Folder Path:</label>
@@ -217,11 +231,11 @@
                         <input type="file" id="folderPicker" webkitdirectory directory multiple style="display: none;">
                         <!-- Text input as fallback -->
                         <input type="text" id="scan_path" name="scan_path" class="form-control path-input"
-                               placeholder="Enter path to scan (e.g., C:\Projects\MyApp)" required>
+                            placeholder="Enter path to scan (e.g., C:\Projects\MyApp)" required>
                     </div>
                     <div class="path-validation" id="pathValidation" style="display: none;"></div>
                 </div>
-                
+
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Set Scan Folder</button>
                     <button type="button" class="btn btn-secondary" onclick="closeFolderSelector()">Cancel</button>
@@ -235,934 +249,934 @@
 </div>
 
 <div class="action-buttons">
-    <a href="{{ url_for('custom_scan') }}" class="btn btn-primary">🔍 Custom Scan</a>
-    <a href="{{ url_for('report') }}" class="btn btn-secondary">📄 Generate Report</a>
-    <a href="{{ url_for('history') }}" class="btn btn-secondary">📋 View History</a>
+    <a href="{{ url_for('main.custom_scan') }}" class="btn btn-primary">🔍 Custom Scan</a>
+    <a href="{{ url_for('main.report') }}" class="btn btn-secondary">📄 Generate Report</a>
+    <a href="{{ url_for('main.history') }}" class="btn btn-secondary">📋 View History</a>
     <button onclick="refreshStatus()" class="btn btn-outline" style="color: black;">🔄 Refresh Status</button>
 </div>
 
 <style>
-.page-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.page-header h1 {
-    font-size: 2.2rem;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
-}
-
-.page-subtitle {
-    font-size: 1rem;
-    color: #6c757d;
-    margin: 0;
-}
-
-.status-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 20px;
-    margin-bottom: 2rem;
-}
-
-.status-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border-left: 4px solid #667eea;
-    transition: transform 0.3s ease;
-}
-
-.status-card:hover {
-    transform: translateY(-4px);
-}
-
-.status-card.error {
-    border-left-color: #dc3545;
-}
-
-.status-card.warning {
-    border-left-color: #ffc107;
-}
-
-.status-card.success {
-    border-left-color: #28a745;
-}
-
-.status-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.status-header h3 {
-    margin: 0;
-    color: #495057;
-    font-size: 1.1rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-}
-
-.scan-controls {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.current-scan-path {
-    background: #e3f2fd;
-    border: 1px solid #bbdefb;
-    border-radius: 6px;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.scan-path-info {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #1565c0;
-}
-
-.scan-path-info code {
-    background: #fff;
-    padding: 0.2rem 0.4rem;
-    border-radius: 3px;
-    font-family: monospace;
-    color: #d32f2f;
-}
-
-.status-content {
-    line-height: 1.6;
-}
-
-.error-message {
-    color: #dc3545;
-    font-weight: 500;
-}
-
-.warning-message {
-    color: #856404;
-    font-weight: 500;
-}
-
-.status-message {
-    color: #155724;
-    font-weight: 500;
-}
-
-.error-details {
-    color: #fd7e14;
-    font-size: 0.9em;
-    margin-top: 0.5rem;
-}
-
-.vulnerability-item {
-    margin: 0.5rem 0;
-}
-
-.vuln-count {
-    font-weight: 600;
-    color: #dc3545;
-}
-
-.traffic-list {
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.traffic-item {
-    margin: 0.3rem 0;
-    padding: 0.3rem 0;
-    border-bottom: 1px solid #f8f9fa;
-}
-
-.ai-recommendations-section {
-    margin: 2rem 0;
-}
-
-.ai-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
-}
-
-.ai-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.ai-header h2 {
-    margin: 0;
-    font-size: 1.4rem;
-    font-weight: 600;
-}
-
-.ai-badges {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.ai-badge {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.vulnerability-badge {
-    background: rgba(255, 107, 107, 0.3);
-    border: 1px solid rgba(255, 107, 107, 0.5);
-}
-
-.vulnerability-context {
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-left: 4px solid #ffd93d;
-    backdrop-filter: blur(10px);
-}
-
-.vulnerability-context h4 {
-    margin: 0 0 0.5rem 0;
-    color: #ffd93d;
-    font-size: 1rem;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.vulnerability-context p {
-    margin: 0.25rem 0;
-    font-size: 0.9rem;
-    color: #ffffff;
-    font-weight: 500;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.critical-alert {
-    color: #ff6b6b !important;
-    font-weight: bold;
-    background: rgba(255, 107, 107, 0.2);
-    padding: 0.5rem;
-    border-radius: 4px;
-    border-left: 3px solid #ff6b6b;
-}
-
-.ai-analysis {
-    line-height: 1.7;
-    font-size: 1rem;
-}
-
-.ai-content {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 1rem;
-}
-
-.ai-advice {
-    line-height: 1.7;
-    font-size: 1rem;
-}
-
-.no-advice {
-    text-align: center;
-    opacity: 0.8;
-    font-style: italic;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: 2rem;
-    flex-wrap: wrap;
-}
-
-@media (max-width: 768px) {
-    .status-grid {
-        grid-template-columns: 1fr;
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
     }
-    
-    .action-buttons {
-        flex-direction: column;
+
+    .page-header h1 {
+        font-size: 2.2rem;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+    }
+
+    .page-subtitle {
+        font-size: 1rem;
+        color: #6c757d;
+        margin: 0;
+    }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        margin-bottom: 2rem;
+    }
+
+    .status-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid #667eea;
+        transition: transform 0.3s ease;
+    }
+
+    .status-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .status-card.error {
+        border-left-color: #dc3545;
+    }
+
+    .status-card.warning {
+        border-left-color: #ffc107;
+    }
+
+    .status-card.success {
+        border-left-color: #28a745;
+    }
+
+    .status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .status-header h3 {
+        margin: 0;
+        color: #495057;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
         align-items: center;
     }
-    
-    .ai-header {
-        flex-direction: column;
-        gap: 0.5rem;
-        text-align: center;
-    }
-    
-    .status-header {
-        flex-direction: column;
-        align-items: flex-start;
+
+    .scan-controls {
+        display: flex;
         gap: 0.5rem;
     }
-}
 
-/* Modal Styles */
-.modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 12px 12px 0 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 1.3rem;
-}
-
-.close {
-    font-size: 1.5rem;
-    cursor: pointer;
-    background: none;
-    border: none;
-    color: white;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.3s;
-}
-
-.close:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-.modal-body {
-    padding: 2rem;
-}
-
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-group label {
-    display: block;
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.5rem;
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #e9ecef;
-    border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.3s;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.quick-paths {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.quick-paths h4 {
-    margin: 0 0 1rem 0;
-    color: #495057;
-    font-size: 1rem;
-}
-
-.path-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.form-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-}
-
-@media (max-width: 768px) {
-    .modal-content {
-        width: 95%;
-        margin: 1rem;
+    .current-scan-path {
+        background: #e3f2fd;
+        border: 1px solid #bbdefb;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
     }
-    
-    .form-actions {
-        justify-content: center;
+
+    .scan-path-info {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #1565c0;
     }
-    
-    .path-buttons {
-        flex-direction: column;
+
+    .scan-path-info code {
+        background: #fff;
+        padding: 0.2rem 0.4rem;
+        border-radius: 3px;
+        font-family: monospace;
+        color: #d32f2f;
     }
-}
 
-/* File Picker Styles */
-.path-input-container {
-    display: flex;
-    gap: 0.5rem;
-    align-items: stretch;
-}
-
-.folder-picker-btn {
-    flex-shrink: 0;
-    white-space: nowrap;
-    border: 2px solid #667eea;
-    color: #667eea;
-    background: white;
-    transition: all 0.3s ease;
-}
-
-.folder-picker-btn:hover {
-    background: #667eea;
-    color: white;
-}
-
-.folder-picker-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.path-input {
-    flex: 1;
-}
-
-.path-validation {
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.path-validation.valid {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.path-validation.invalid {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.path-validation.checking {
-    background: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeaa7;
-}
-
-.scan-help {
-    margin-top: 0.75rem;
-    padding: 0.5rem;
-    background: #f8f9fa;
-    border-radius: 4px;
-    border-left: 3px solid #17a2b8;
-}
-
-.scan-help p {
-    margin: 0;
-    color: #495057;
-}
-
-.scan-help a {
-    color: #17a2b8;
-    text-decoration: none;
-}
-
-.scan-help a:hover {
-    text-decoration: underline;
-}
-
-.osv-raw-output {
-    margin-top: 1rem;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.osv-raw-output details {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.osv-raw-output summary {
-    cursor: pointer;
-    font-weight: 600;
-    color: #495057;
-    padding: 1rem;
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border-bottom: 1px solid #dee2e6;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.osv-raw-output summary:hover {
-    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-    color: #343a40;
-}
-
-.osv-raw-output summary::marker {
-    content: "";
-}
-
-.osv-raw-output summary::before {
-    content: "▶";
-    transition: transform 0.3s ease;
-    font-size: 0.8rem;
-    color: #6c757d;
-}
-
-.osv-raw-output details[open] summary::before {
-    transform: rotate(90deg);
-}
-
-.scan-output {
-    background: #1a202c;
-    color: #f7fafc;
-    padding: 1.25rem;
-    border-radius: 8px;
-    border: 1px solid #4a5568;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 0.9rem;
-    font-weight: 500;
-    line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    margin: 0.75rem 0 0 0;
-    max-height: 400px;
-    overflow-y: auto;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Syntax highlighting for vulnerability scan output */
-.scan-output {
-    /* Make URLs stand out */
-    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-}
-
-/* Style the vulnerability table headers and data */
-.scan-output::before {
-    content: "🔍 Vulnerability Scan Results";
-    display: block;
-    color: #68d391;
-    font-weight: bold;
-    font-size: 0.95rem;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #4a5568;
-}
-
-@media (max-width: 768px) {
-    .path-input-container {
-        flex-direction: column;
+    .status-content {
+        line-height: 1.6;
     }
-    
-    .folder-picker-btn {
-        width: 100%;
+
+    .error-message {
+        color: #dc3545;
+        font-weight: 500;
     }
-    
-    .scan-output {
-        font-size: 0.75rem;
+
+    .warning-message {
+        color: #856404;
+        font-weight: 500;
+    }
+
+    .status-message {
+        color: #155724;
+        font-weight: 500;
+    }
+
+    .error-details {
+        color: #fd7e14;
+        font-size: 0.9em;
+        margin-top: 0.5rem;
+    }
+
+    .vulnerability-item {
+        margin: 0.5rem 0;
+    }
+
+    .vuln-count {
+        font-weight: 600;
+        color: #dc3545;
+    }
+
+    .traffic-list {
         max-height: 200px;
+        overflow-y: auto;
     }
-}
 
-/* Process Security Styles */
-.process-summary {
-    line-height: 1.6;
-}
+    .traffic-item {
+        margin: 0.3rem 0;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
 
-.process-risk-badge {
-    margin: 0.75rem 0;
-}
+    .ai-recommendations-section {
+        margin: 2rem 0;
+    }
 
-.risk-badge {
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
+    .ai-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+    }
 
-.risk-badge.high {
-    background: #dc3545;
-    color: white;
-}
+    .ai-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
 
-.risk-badge.medium {
-    background: #ffc107;
-    color: #212529;
-}
+    .ai-header h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 600;
+    }
 
-.risk-badge.low {
-    background: #28a745;
-    color: white;
-}
+    .ai-badges {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
 
-.process-stats {
-    margin-top: 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid #e9ecef;
-    color: #6c757d;
-}
+    .ai-badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
 
-.process-stats small {
-    font-size: 0.85rem;
-}
+    .vulnerability-badge {
+        background: rgba(255, 107, 107, 0.3);
+        border: 1px solid rgba(255, 107, 107, 0.5);
+    }
+
+    .vulnerability-context {
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #ffd93d;
+        backdrop-filter: blur(10px);
+    }
+
+    .vulnerability-context h4 {
+        margin: 0 0 0.5rem 0;
+        color: #ffd93d;
+        font-size: 1rem;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .vulnerability-context p {
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+        color: #ffffff;
+        font-weight: 500;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .critical-alert {
+        color: #ff6b6b !important;
+        font-weight: bold;
+        background: rgba(255, 107, 107, 0.2);
+        padding: 0.5rem;
+        border-radius: 4px;
+        border-left: 3px solid #ff6b6b;
+    }
+
+    .ai-analysis {
+        line-height: 1.7;
+        font-size: 1rem;
+    }
+
+    .ai-content {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .ai-advice {
+        line-height: 1.7;
+        font-size: 1rem;
+    }
+
+    .no-advice {
+        text-align: center;
+        opacity: 0.8;
+        font-style: italic;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+        .status-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ai-header {
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: center;
+        }
+
+        .status-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+    }
+
+    /* Modal Styles */
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.3rem;
+    }
+
+    .close {
+        font-size: 1.5rem;
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: white;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background-color 0.3s;
+    }
+
+    .close:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .quick-paths {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .quick-paths h4 {
+        margin: 0 0 1rem 0;
+        color: #495057;
+        font-size: 1rem;
+    }
+
+    .path-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+        .modal-content {
+            width: 95%;
+            margin: 1rem;
+        }
+
+        .form-actions {
+            justify-content: center;
+        }
+
+        .path-buttons {
+            flex-direction: column;
+        }
+    }
+
+    /* File Picker Styles */
+    .path-input-container {
+        display: flex;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+
+    .folder-picker-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+        border: 2px solid #667eea;
+        color: #667eea;
+        background: white;
+        transition: all 0.3s ease;
+    }
+
+    .folder-picker-btn:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    .folder-picker-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .path-input {
+        flex: 1;
+    }
+
+    .path-validation {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    .path-validation.valid {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .path-validation.invalid {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .path-validation.checking {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .scan-help {
+        margin-top: 0.75rem;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #17a2b8;
+    }
+
+    .scan-help p {
+        margin: 0;
+        color: #495057;
+    }
+
+    .scan-help a {
+        color: #17a2b8;
+        text-decoration: none;
+    }
+
+    .scan-help a:hover {
+        text-decoration: underline;
+    }
+
+    .osv-raw-output {
+        margin-top: 1rem;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .osv-raw-output details {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .osv-raw-output summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: #495057;
+        padding: 1rem;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 1px solid #dee2e6;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .osv-raw-output summary:hover {
+        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+        color: #343a40;
+    }
+
+    .osv-raw-output summary::marker {
+        content: "";
+    }
+
+    .osv-raw-output summary::before {
+        content: "▶";
+        transition: transform 0.3s ease;
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .osv-raw-output details[open] summary::before {
+        transform: rotate(90deg);
+    }
+
+    .scan-output {
+        background: #1a202c;
+        color: #f7fafc;
+        padding: 1.25rem;
+        border-radius: 8px;
+        border: 1px solid #4a5568;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.5;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        margin: 0.75rem 0 0 0;
+        max-height: 400px;
+        overflow-y: auto;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Syntax highlighting for vulnerability scan output */
+    .scan-output {
+        /* Make URLs stand out */
+        background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+    }
+
+    /* Style the vulnerability table headers and data */
+    .scan-output::before {
+        content: "🔍 Vulnerability Scan Results";
+        display: block;
+        color: #68d391;
+        font-weight: bold;
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #4a5568;
+    }
+
+    @media (max-width: 768px) {
+        .path-input-container {
+            flex-direction: column;
+        }
+
+        .folder-picker-btn {
+            width: 100%;
+        }
+
+        .scan-output {
+            font-size: 0.75rem;
+            max-height: 200px;
+        }
+    }
+
+    /* Process Security Styles */
+    .process-summary {
+        line-height: 1.6;
+    }
+
+    .process-risk-badge {
+        margin: 0.75rem 0;
+    }
+
+    .risk-badge {
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .risk-badge.high {
+        background: #dc3545;
+        color: white;
+    }
+
+    .risk-badge.medium {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .risk-badge.low {
+        background: #28a745;
+        color: white;
+    }
+
+    .process-stats {
+        margin-top: 0.75rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #e9ecef;
+        color: #6c757d;
+    }
+
+    .process-stats small {
+        font-size: 0.85rem;
+    }
 </style>
 
 <script>
 
-// Initialize status loader if we're on the status page
-let statusLoader = null;
-if (window.location.pathname === '/status') {
-    statusLoader = new StatusPageLoader();
-}
-
-function refreshStatus() {
-    if (statusLoader) {
-        statusLoader.loadStatusData();
-    } else {
-        // Fallback for non-async refresh
-        const button = event.target;
-        const originalText = button.textContent;
-        button.textContent = '🔄 Refreshing...';
-        button.disabled = true;
-        
-        setTimeout(() => {
-            location.reload();
-        }, 1000);
-    }
-}
-
-// Immediate page loading management - runs before DOM is ready
-(function() {
+    // Initialize status loader if we're on the status page
+    let statusLoader = null;
     if (window.location.pathname === '/status') {
-        // Show skeleton screen immediately
-        document.addEventListener('DOMContentLoaded', function() {
+        statusLoader = new StatusPageLoader();
+    }
+
+    function refreshStatus() {
+        if (statusLoader) {
+            statusLoader.loadStatusData();
+        } else {
+            // Fallback for non-async refresh
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '🔄 Refreshing...';
+            button.disabled = true;
+
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+    }
+
+    // Immediate page loading management - runs before DOM is ready
+    (function () {
+        if (window.location.pathname === '/status') {
+            // Show skeleton screen immediately
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.skeletonManager) {
+                    window.skeletonManager.showSkeleton('status');
+                }
+            });
+        }
+    })();
+
+    // Auto-load status data on page load for better UX
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize status loader
+        if (window.location.pathname === '/status') {
+            statusLoader = new StatusPageLoader();
+
+            // Show skeleton screen while loading
             if (window.skeletonManager) {
                 window.skeletonManager.showSkeleton('status');
             }
-        });
-    }
-})();
 
-// Auto-load status data on page load for better UX
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize status loader
-    if (window.location.pathname === '/status') {
-        statusLoader = new StatusPageLoader();
-        
-        // Show skeleton screen while loading
-        if (window.skeletonManager) {
-            window.skeletonManager.showSkeleton('status');
-        }
-        
-        // Start loading data immediately
-        setTimeout(() => {
-            if (statusLoader) {
-                statusLoader.loadStatusData();
-            }
-        }, 100);
-    }
-});
-
-// Enhanced status loader with skeleton management
-class StatusPageLoader {
-    constructor() {
-        this.loadingSteps = [
-            { id: 'av', name: 'Antivirus Protection', endpoint: '/api/status/av' },
-            { id: 'fw', name: 'Firewall Status', endpoint: '/api/status/fw' },
-            { id: 'vulns', name: 'Vulnerability Scan', endpoint: '/api/status/vulns' },
-            { id: 'net', name: 'Network Security', endpoint: '/api/status/net' },
-            { id: 'traffic', name: 'Traffic Analysis', endpoint: '/api/status/traffic' },
-            { id: 'processes', name: 'Process Security', endpoint: '/api/status/processes' },
-            { id: 'advice', name: 'AI Recommendations', endpoint: '/api/status/advice' }
-        ];
-        this.currentStep = 0;
-        this.data = {};
-    }
-    
-    async loadStatusData() {
-        // Hide skeleton and show detailed loading
-        if (window.skeletonManager) {
-            window.skeletonManager.hideSkeleton('status');
-        }
-        
-        window.loadingManager.show('Loading Security Status', 'Gathering comprehensive security information...');
-        
-        try {
-            for (let i = 0; i < this.loadingSteps.length; i++) {
-                const step = this.loadingSteps[i];
-                window.loadingManager.nextStep(`Loading ${step.name}`);
-                
-                try {
-                    const response = await fetch(step.endpoint);
-                    const result = await response.json();
-                    
-                    if (result.status === 'success') {
-                        this.data[step.id] = result.data;
-                    } else {
-                        console.error(`Error loading ${step.name}:`, result.error);
-                        this.data[step.id] = { error: result.error };
-                    }
-                } catch (error) {
-                    console.error(`Network error loading ${step.name}:`, error);
-                    this.data[step.id] = { error: `Network error: ${error.message}` };
+            // Start loading data immediately
+            setTimeout(() => {
+                if (statusLoader) {
+                    statusLoader.loadStatusData();
                 }
-                
-                // Update progress
-                window.loadingManager.updateProgress(((i + 1) / this.loadingSteps.length) * 100);
-            }
-            
-            // Update the page with loaded data
-            this.updateStatusCards();
-            
-        } catch (error) {
-            console.error('Error loading status data:', error);
-        } finally {
-            window.loadingManager.hide();
+            }, 100);
         }
-    }
-    
-    updateStatusCards() {
-        // Update each status card with the loaded data
-        // This would require modifying the existing status cards to be updatable
-        // For now, we'll just reload the page with the cached data
-        location.reload();
-    }
-}
+    });
 
-// Hide page loading when window loads completely
-window.addEventListener('load', function() {
-    if (window.loadingManager) {
-        window.loadingManager.hidePageLoading();
-    }
-    if (window.skeletonManager) {
-        window.skeletonManager.hideAllSkeletons();
-    }
-});
+    // Enhanced status loader with skeleton management
+    class StatusPageLoader {
+        constructor() {
+            this.loadingSteps = [
+                { id: 'av', name: 'Antivirus Protection', endpoint: '/api/status/av' },
+                { id: 'fw', name: 'Firewall Status', endpoint: '/api/status/fw' },
+                { id: 'vulns', name: 'Vulnerability Scan', endpoint: '/api/status/vulns' },
+                { id: 'net', name: 'Network Security', endpoint: '/api/status/net' },
+                { id: 'traffic', name: 'Traffic Analysis', endpoint: '/api/status/traffic' },
+                { id: 'processes', name: 'Process Security', endpoint: '/api/status/processes' },
+                { id: 'advice', name: 'AI Recommendations', endpoint: '/api/status/advice' }
+            ];
+            this.currentStep = 0;
+            this.data = {};
+        }
 
-function showFolderSelector() {
-    document.getElementById('folderSelectorModal').style.display = 'flex';
-}
-
-function closeFolderSelector() {
-    document.getElementById('folderSelectorModal').style.display = 'none';
-}
-
-function setQuickPath(path) {
-    document.getElementById('scan_path').value = path;
-}
-
-function clearScanPath() {
-    if (confirm('Are you sure you want to clear the current scan path? Future scans will use the default path.')) {
-        fetch('{{ url_for("clear_preferred_path") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': '{{ csrf_token() }}'
+        async loadStatusData() {
+            // Hide skeleton and show detailed loading
+            if (window.skeletonManager) {
+                window.skeletonManager.hideSkeleton('status');
             }
-        }).then(() => {
+
+            window.loadingManager.show('Loading Security Status', 'Gathering comprehensive security information...');
+
+            try {
+                for (let i = 0; i < this.loadingSteps.length; i++) {
+                    const step = this.loadingSteps[i];
+                    window.loadingManager.nextStep(`Loading ${step.name}`);
+
+                    try {
+                        const response = await fetch(step.endpoint);
+                        const result = await response.json();
+
+                        if (result.status === 'success') {
+                            this.data[step.id] = result.data;
+                        } else {
+                            console.error(`Error loading ${step.name}:`, result.error);
+                            this.data[step.id] = { error: result.error };
+                        }
+                    } catch (error) {
+                        console.error(`Network error loading ${step.name}:`, error);
+                        this.data[step.id] = { error: `Network error: ${error.message}` };
+                    }
+
+                    // Update progress
+                    window.loadingManager.updateProgress(((i + 1) / this.loadingSteps.length) * 100);
+                }
+
+                // Update the page with loaded data
+                this.updateStatusCards();
+
+            } catch (error) {
+                console.error('Error loading status data:', error);
+            } finally {
+                window.loadingManager.hide();
+            }
+        }
+
+        updateStatusCards() {
+            // Update each status card with the loaded data
+            // This would require modifying the existing status cards to be updatable
+            // For now, we'll just reload the page with the cached data
             location.reload();
-        });
+        }
     }
-}
 
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('folderSelectorModal');
-    if (event.target === modal) {
-        closeFolderSelector();
-    }
-});
-
-// File Picker Functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const folderPickerBtn = document.getElementById('folderPickerBtn');
-    const folderPicker = document.getElementById('folderPicker');
-    const pathInput = document.getElementById('scan_path');
-    const pathValidation = document.getElementById('pathValidation');
-    
-    // Check if browser supports directory picker
-    const supportsDirectoryPicker = 'webkitdirectory' in document.createElement('input');
-    
-    if (!supportsDirectoryPicker) {
-        folderPickerBtn.textContent = '📁 Browse (Limited Support)';
-        folderPickerBtn.title = 'Your browser has limited folder picker support. Please use the text input.';
-    }
-    
-    // Handle folder picker button click
-    folderPickerBtn.addEventListener('click', function() {
-        if (supportsDirectoryPicker) {
-            folderPicker.click();
-        } else {
-            // Fallback for browsers without directory support
-            alert('Your browser doesn\'t support folder picking. Please enter the path manually in the text field.');
-            pathInput.focus();
+    // Hide page loading when window loads completely
+    window.addEventListener('load', function () {
+        if (window.loadingManager) {
+            window.loadingManager.hidePageLoading();
+        }
+        if (window.skeletonManager) {
+            window.skeletonManager.hideAllSkeletons();
         }
     });
-    
-    // Handle folder selection
-    folderPicker.addEventListener('change', function(e) {
-        const files = e.target.files;
-        if (files.length > 0) {
-            // Get the common path from the first file
-            const firstFile = files[0];
-            let folderPath = firstFile.webkitRelativePath;
-            
-            // Extract the root folder path
-            const pathParts = folderPath.split('/');
-            if (pathParts.length > 1) {
-                // For web file picker, we get relative paths, but we need to construct the full path
-                // This is a limitation - we can't get the actual system path from web file picker
-                const folderName = pathParts[0];
-                pathInput.value = folderName;
-                showPathValidation('info', `Selected folder: ${folderName} (${files.length} files detected)`);
+
+    function showFolderSelector() {
+        document.getElementById('folderSelectorModal').style.display = 'flex';
+    }
+
+    function closeFolderSelector() {
+        document.getElementById('folderSelectorModal').style.display = 'none';
+    }
+
+    function setQuickPath(path) {
+        document.getElementById('scan_path').value = path;
+    }
+
+    function clearScanPath() {
+        if (confirm('Are you sure you want to clear the current scan path? Future scans will use the default path.')) {
+            fetch('{{ url_for("main.clear_preferred_path") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            }).then(() => {
+                location.reload();
+            });
+        }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function (event) {
+        const modal = document.getElementById('folderSelectorModal');
+        if (event.target === modal) {
+            closeFolderSelector();
+        }
+    });
+
+    // File Picker Functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        const folderPickerBtn = document.getElementById('folderPickerBtn');
+        const folderPicker = document.getElementById('folderPicker');
+        const pathInput = document.getElementById('scan_path');
+        const pathValidation = document.getElementById('pathValidation');
+
+        // Check if browser supports directory picker
+        const supportsDirectoryPicker = 'webkitdirectory' in document.createElement('input');
+
+        if (!supportsDirectoryPicker) {
+            folderPickerBtn.textContent = '📁 Browse (Limited Support)';
+            folderPickerBtn.title = 'Your browser has limited folder picker support. Please use the text input.';
+        }
+
+        // Handle folder picker button click
+        folderPickerBtn.addEventListener('click', function () {
+            if (supportsDirectoryPicker) {
+                folderPicker.click();
+            } else {
+                // Fallback for browsers without directory support
+                alert('Your browser doesn\'t support folder picking. Please enter the path manually in the text field.');
+                pathInput.focus();
             }
-        }
-    });
-    
-    // Real-time path validation
-    let validationTimeout;
-    pathInput.addEventListener('input', function() {
-        clearTimeout(validationTimeout);
-        const path = this.value.trim();
-        
-        if (!path) {
-            hidePathValidation();
-            return;
-        }
-        
-        // Show checking state
-        showPathValidation('checking', 'Validating path...');
-        
-        // Debounce validation
-        validationTimeout = setTimeout(() => {
-            validatePath(path);
-        }, 500);
-    });
-    
-    function validatePath(path) {
-        // Basic client-side validation
-        const isWindows = /^[A-Za-z]:\\/.test(path);
-        const isUnix = /^\//.test(path);
-        const isRelative = !isWindows && !isUnix;
-        
-        if (isRelative && !path.startsWith('./') && !path.startsWith('../')) {
-            showPathValidation('invalid', 'Please enter an absolute path (e.g., C:\\folder or /home/user/folder)');
-            return;
-        }
-        
-        // Check for potentially dangerous paths
-        const dangerousPaths = [
-            'C:\\Windows\\System32',
-            '/etc',
-            '/root',
-            '/sys',
-            '/proc'
-        ];
-        
-        const isDangerous = dangerousPaths.some(dangerous =>
-            path.toLowerCase().startsWith(dangerous.toLowerCase())
-        );
-        
-        if (isDangerous) {
-            showPathValidation('invalid', '⚠️ Warning: This appears to be a system directory. Proceed with caution.');
-            return;
-        }
-        
-        // Path looks valid
-        showPathValidation('valid', '✅ Path format appears valid');
-    }
-    
-    function showPathValidation(type, message) {
-        pathValidation.className = `path-validation ${type}`;
-        pathValidation.textContent = message;
-        pathValidation.style.display = 'block';
-    }
-    
-    function hidePathValidation() {
-        pathValidation.style.display = 'none';
-    }
-    
-    // Handle form submission
-    const form = document.getElementById('folderSelectorForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const path = pathInput.value.trim();
-            
+        });
+
+        // Handle folder selection
+        folderPicker.addEventListener('change', function (e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                // Get the common path from the first file
+                const firstFile = files[0];
+                let folderPath = firstFile.webkitRelativePath;
+
+                // Extract the root folder path
+                const pathParts = folderPath.split('/');
+                if (pathParts.length > 1) {
+                    // For web file picker, we get relative paths, but we need to construct the full path
+                    // This is a limitation - we can't get the actual system path from web file picker
+                    const folderName = pathParts[0];
+                    pathInput.value = folderName;
+                    showPathValidation('info', `Selected folder: ${folderName} (${files.length} files detected)`);
+                }
+            }
+        });
+
+        // Real-time path validation
+        let validationTimeout;
+        pathInput.addEventListener('input', function () {
+            clearTimeout(validationTimeout);
+            const path = this.value.trim();
+
             if (!path) {
-                e.preventDefault();
-                alert('Please enter a valid path or use the folder picker');
+                hidePathValidation();
                 return;
             }
-            
-            // Show loading state
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Setting...';
-            submitBtn.disabled = true;
-            
-            // Log the attempt for debugging
-            console.log('Setting scan folder:', path);
-        });
-    }
-});
 
-// Auto-refresh every 5 minutes
-setInterval(() => {
-    location.reload();
-}, 300000);
+            // Show checking state
+            showPathValidation('checking', 'Validating path...');
+
+            // Debounce validation
+            validationTimeout = setTimeout(() => {
+                validatePath(path);
+            }, 500);
+        });
+
+        function validatePath(path) {
+            // Basic client-side validation
+            const isWindows = /^[A-Za-z]:\\/.test(path);
+            const isUnix = /^\//.test(path);
+            const isRelative = !isWindows && !isUnix;
+
+            if (isRelative && !path.startsWith('./') && !path.startsWith('../')) {
+                showPathValidation('invalid', 'Please enter an absolute path (e.g., C:\\folder or /home/user/folder)');
+                return;
+            }
+
+            // Check for potentially dangerous paths
+            const dangerousPaths = [
+                'C:\\Windows\\System32',
+                '/etc',
+                '/root',
+                '/sys',
+                '/proc'
+            ];
+
+            const isDangerous = dangerousPaths.some(dangerous =>
+                path.toLowerCase().startsWith(dangerous.toLowerCase())
+            );
+
+            if (isDangerous) {
+                showPathValidation('invalid', '⚠️ Warning: This appears to be a system directory. Proceed with caution.');
+                return;
+            }
+
+            // Path looks valid
+            showPathValidation('valid', '✅ Path format appears valid');
+        }
+
+        function showPathValidation(type, message) {
+            pathValidation.className = `path-validation ${type}`;
+            pathValidation.textContent = message;
+            pathValidation.style.display = 'block';
+        }
+
+        function hidePathValidation() {
+            pathValidation.style.display = 'none';
+        }
+
+        // Handle form submission
+        const form = document.getElementById('folderSelectorForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                const path = pathInput.value.trim();
+
+                if (!path) {
+                    e.preventDefault();
+                    alert('Please enter a valid path or use the folder picker');
+                    return;
+                }
+
+                // Show loading state
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Setting...';
+                submitBtn.disabled = true;
+
+                // Log the attempt for debugging
+                console.log('Setting scan folder:', path);
+            });
+        }
+    });
+
+    // Auto-refresh every 5 minutes
+    setInterval(() => {
+        location.reload();
+    }, 300000);
 </script>
 
 {% endblock %}

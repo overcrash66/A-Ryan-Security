@@ -151,7 +151,7 @@
                             <small>Current Time: <span id="current-time">{{ '' | current_time }}</span></small>
                         </div>
                     </div>
-                    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline">Logout</a>
+                    <a href="{{ url_for('main.logout') }}" class="btn btn-sm btn-outline">Logout</a>
                 </div>
             {% endif %}
         </div>
@@ -162,22 +162,22 @@
     <nav class="main-nav">
         <div class="container">
             <ul class="nav-links">
-                <li><a href="{{ url_for('index') }}" class="nav-link {{ 'active' if request.endpoint == 'index' }}">
+                <li><a href="{{ url_for('main.index') }}" class="nav-link {{ 'active' if request.endpoint == 'index' }}">
                     <i class="icon-dashboard"></i>Dashboard
                 </a></li>
-                <li><a href="{{ url_for('status') }}" class="nav-link {{ 'active' if request.endpoint == 'status' }}">
+                <li><a href="{{ url_for('main.status') }}" class="nav-link {{ 'active' if request.endpoint == 'status' }}">
                     <i class="icon-status"></i>Status
                 </a></li>
-                <li><a href="{{ url_for('history') }}" class="nav-link {{ 'active' if request.endpoint == 'history' }}">
+                <li><a href="{{ url_for('main.history') }}" class="nav-link {{ 'active' if request.endpoint == 'history' }}">
                     <i class="icon-history"></i>History
                 </a></li>
-                <li><a href="{{ url_for('process_scan') }}" class="nav-link {{ 'active' if request.endpoint == 'process_scan' }}">
+                <li><a href="{{ url_for('main.process_scan') }}" class="nav-link {{ 'active' if request.endpoint == 'process_scan' }}">
                     <i class="icon-process"></i>Process Scan
                 </a></li>
-                <li><a href="{{ url_for('whois_lookup') }}" class="nav-link {{ 'active' if request.endpoint == 'whois_lookup' }}">
+                <li><a href="{{ url_for('main.whois_lookup') }}" class="nav-link {{ 'active' if request.endpoint == 'whois_lookup' }}">
                     <i class="icon-whois"></i>Whois Lookup
                 </a></li>
-                <li><a href="{{ url_for('report') }}" class="nav-link {{ 'active' if request.endpoint == 'report' }}">
+                <li><a href="{{ url_for('main.report') }}" class="nav-link {{ 'active' if request.endpoint == 'report' }}">
                     <i class="icon-report"></i>Reports
                 </a></li>
             </ul>

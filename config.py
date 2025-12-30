@@ -8,8 +8,11 @@ class Config:
     # Security settings - NO HARDCODED SECRETS
     SECRET_KEY = os.getenv('SECRET_KEY')
     if not SECRET_KEY:
-        raise ValueError("SECRET_KEY environment variable must be set")
-    if len(SECRET_KEY) < 32:
+        if os.getenv('FLASK_ENV') == 'production':
+            raise ValueError("SECRET_KEY environment variable must be set")
+        SECRET_KEY = 'dev-default-key-for-local-testing'
+    
+    if len(SECRET_KEY) < 32 and os.getenv('FLASK_ENV') == 'production':
         raise ValueError("SECRET_KEY must be at least 32 characters long")
 
     # Database settings
