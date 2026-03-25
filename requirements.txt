@@ -16,6 +16,7 @@ python-dotenv>=1.0.0,<2.0.0
 email-validator>=2.0.0,<3.0.0
 marshmallow>=3.19.0,<4.0.0
 flask-jwt-extended>=4.5.2,<5.0.0
+cryptography>=41.0.0,<43.0.0
 
 # System Monitoring & Security Scanning
 psutil>=5.9.0,<6.0.0

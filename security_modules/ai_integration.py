@@ -3,6 +3,35 @@ import logging
 import os
 import json
 
+def get_ai_client(user_id=None):
+    """
+    Get configured Ollama client based on user settings or system defaults.
+    
+    Args:
+        user_id: Optional user ID to get user-specific config
+        
+    Returns:
+        Tuple of (client, model_name, api_key)
+    """
+    from security_modules import ai_config
+    
+    # Get user config or defaults
+    config = ai_config.get_ai_config(user_id)
+    
+    api_url = config.get('api_url', 'http://127.0.0.1:11434')
+    model = config.get('default_model', 'qwen2.5-coder:3b')
+    
+    # Get decrypted API key if available
+    api_key = None
+    if user_id and config.get('api_key'):
+        api_key = ai_config.get_decrypted_api_key(user_id)
+    
+    # Create client with configured URL
+    client = ollama.Client(host=api_url)
+    
+    return client, model, api_key
+
+
 def get_comprehensive_ai_analysis(results):
     """
     Get comprehensive AI analysis that provides consistent executive summary and recommendations.
@@ -15,12 +44,13 @@ def get_comprehensive_ai_analysis(results):
     logging.info(f"Comprehensive prompt length: {len(prompt)} characters")
     
     try:
-        # Configure client - use explicit 127.0.0.1 to avoid localhost resolution issues
-        client = ollama.Client(host='http://127.0.0.1:11434')
-        logging.info("Configured Ollama client for explicit host 127.0.0.1:11434")
+        # Get configured client and model
+        client, model, api_key = get_ai_client()
+        
+        logging.info(f"Using Ollama client: {client._client._host}, model: {model}")
         
         # Use available model
-        response = client.chat(model='qwen2.5-coder:3b', messages=[{'role': 'user', 'content': prompt}])
+        response = client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
         analysis = response['message']['content']
         logging.info(f'Comprehensive AI analysis generated successfully. Length: {len(analysis)} characters')
         
@@ -34,10 +64,17 @@ def get_comprehensive_ai_analysis(results):
         
         try:
             # Fallback to custom port if default fails
-            custom_client = ollama.Client(host='http://localhost:11435')
-            response = custom_client.chat(model='qwen2.5-coder:3b', messages=[{'role': 'user', 'content': prompt}])
+            from security_modules import ai_config
+            fallback_url = f"http://127.0.0.1:{ai_config.FALLBACK_PORT}"
+            fallback_client = ollama.Client(host=fallback_url)
+            
+            # Use configured model on fallback
+            config = ai_config.get_ai_config(None)
+            model = config.get('default_model', 'qwen2.5-coder:3b')
+            
+            response = fallback_client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
             analysis = response['message']['content']
-            logging.info(f'Comprehensive AI analysis generated on default port. Length: {len(analysis)} characters')
+            logging.info(f'Comprehensive AI analysis generated on fallback port. Length: {len(analysis)} characters')
             
             parsed_analysis = parse_ai_analysis(analysis)
             return parsed_analysis
@@ -224,11 +261,12 @@ def get_ai_advice(results):
         # Test connection first
         logging.info("Testing Ollama connection...")
         
-        # Configure client - use explicit 127.0.0.1 to avoid localhost resolution issues
-        client = ollama.Client(host='http://127.0.0.1:11434')
-        logging.info("Configured Ollama client for explicit host 127.0.0.1:11434")
+        # Get configured client and model
+        client, model, api_key = get_ai_client()
         
-        response = client.chat(model='qwen2.5-coder:3b', messages=[{'role': 'user', 'content': prompt}])
+        logging.info(f"Using Ollama client: {client._client._host}, model: {model}")
+        
+        response = client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
         advice = response['message']['content']
         logging.info(f'AI advice generated successfully. Length: {len(advice)} characters')
         return advice
@@ -238,10 +276,17 @@ def get_ai_advice(results):
         
         try:
             # Fallback to custom port if default fails
-            custom_client = ollama.Client(host='http://127.0.0.1:11435')
-            response = custom_client.chat(model='qwen2.5-coder:3b', messages=[{'role': 'user', 'content': prompt}])
+            from security_modules import ai_config
+            fallback_url = f"http://127.0.0.1:{ai_config.FALLBACK_PORT}"
+            fallback_client = ollama.Client(host=fallback_url)
+            
+            # Use configured model on fallback
+            config = ai_config.get_ai_config(None)
+            model = config.get('default_model', 'qwen2.5-coder:3b')
+            
+            response = fallback_client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
             advice = response['message']['content']
-            logging.info(f'AI advice generated on default port. Length: {len(advice)} characters')
+            logging.info(f'AI advice generated on fallback port. Length: {len(advice)} characters')
             return advice
         except Exception as fallback_error:
             logging.error(f'Fallback to default port also failed: {type(fallback_error).__name__}: {str(fallback_error)}')
@@ -328,11 +373,12 @@ def predict_threats(logs):
     logging.info("Starting threat prediction...")
     
     try:
-        # Use explicit client
-        client = ollama.Client(host='http://127.0.0.1:11434')
-        logging.info("Configured threat prediction client for explicit host 127.0.0.1:11434")
+        # Get configured client and model
+        client, model, api_key = get_ai_client()
         
-        response = client.chat(model='qwen2.5-coder:3b', messages=[{'role': 'user', 'content': prompt}])
+        logging.info(f"Using Ollama client: {client._client._host}, model: {model}")
+        
+        response = client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
         prediction = response['message']['content']
         logging.info(f'Threat prediction generated successfully. Length: {len(prediction)} characters')
         return prediction
@@ -341,10 +387,17 @@ def predict_threats(logs):
         
         try:
             # Fallback to custom port if default fails
-            custom_client = ollama.Client(host='http://localhost:11435')
-            response = custom_client.chat(model='qwen2.5-coder:3b', messages=[{'role': 'user', 'content': prompt}])
+            from security_modules import ai_config
+            fallback_url = f"http://127.0.0.1:{ai_config.FALLBACK_PORT}"
+            fallback_client = ollama.Client(host=fallback_url)
+            
+            # Use configured model on fallback
+            config = ai_config.get_ai_config(None)
+            model = config.get('default_model', 'qwen2.5-coder:3b')
+            
+            response = fallback_client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
             prediction = response['message']['content']
-            logging.info(f'Threat prediction generated on default port. Length: {len(prediction)} characters')
+            logging.info(f'Threat prediction generated on fallback port. Length: {len(prediction)} characters')
             return prediction
         except Exception as fallback_error:
             logging.error(f'Threat prediction fallback failed: {type(fallback_error).__name__}: {str(fallback_error)}')
