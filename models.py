@@ -133,3 +133,18 @@ class ScanHistory(db.Model):
             'osv_version': self.osv_version,
             'error_message': self.error_message
         }
+
+
+class AIConfig(db.Model):
+    """AI provider configuration model."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, index=True)
+    provider = db.Column(db.String(50), default='ollama')  # ollama, openai, azure
+    api_url = db.Column(db.String(255), default='http://127.0.0.1:11434')
+    api_key = db.Column(db.Text)  # Encrypted - use Text for variable length
+    default_model = db.Column(db.String(100), default='qwen2.5-coder:3b')
+    is_enabled = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('ai_config', uselist=False))

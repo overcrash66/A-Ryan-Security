@@ -27,3 +27,11 @@ class ConfigSchema(Schema):
     email_notifications = fields.Bool()
     backup_enabled = fields.Bool()
     backup_frequency = fields.Int(validate=validate.Range(min=1, max=30))
+
+class AIConfigSchema(Schema):
+    """Schema for AI configuration validation."""
+    provider = fields.Str(validate=validate.OneOf(['ollama', 'openai', 'azure']))
+    api_url = fields.Str(required=True, validate=validate.Length(min=1, max=255))
+    api_key = fields.Str(allow_none=True, validate=validate.Length(max=256))
+    default_model = fields.Str(required=True, validate=validate.Length(min=1, max=100))
+    is_enabled = fields.Bool()

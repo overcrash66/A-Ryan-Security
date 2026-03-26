@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}AI Settings - A-Ryan Security{% endblock %}
+
+{% block content %}
+<style>
+    .ai-settings-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .settings-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+    
+    .settings-card h2 {
+        color: #333;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+    }
+    
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-group .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+    }
+    
+    .form-group .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .form-group .checkbox-group input[type="checkbox"] {
+        width: auto;
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 25px;
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: #667eea;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #5568d3;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+    
+    .btn-outline {
+        background: transparent;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+    
+    .btn-outline:hover {
+        background: #667eea;
+        color: white;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    
+    .status-enabled {
+        background: #28a745;
+    }
+    
+    .status-disabled {
+        background: #dc3545;
+    }
+    
+    .connection-status {
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .connection-status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+    }
+    
+    .connection-status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0,0,0,0.1);
+        border-radius: 50%;
+        border-top-color: #667eea;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .provider-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #e9ecef;
+        color: #495057;
+        margin-left: 10px;
+    }
+</style>
+
+<div class="ai-settings-container">
+    <div class="settings-card">
+        <h2>
+            <span class="status-indicator {{ 'status-enabled' if config.is_enabled else 'status-disabled' }}"></span>
+            AI Configuration
+            {% if config.is_enabled %}
+                <span class="provider-badge">Enabled</span>
+            {% else %}
+                <span class="provider-badge" style="background: #f8d7da; color: #721c24;">Disabled</span>
+            {% endif %}
+        </h2>
+        
+        <!-- Connection Status Message -->
+        <div id="connectionStatus" class="connection-status"></div>
+        
+        <form method="POST" action="{{ url_for('main.ai_settings_save') }}" id="aiSettingsForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <!-- Provider Selection -->
+            <div class="form-group">
+                <label for="provider">Provider</label>
+                <select name="provider" id="provider" onchange="toggleApiKeyField()">
+                    <option value="ollama" {{ 'selected' if config.provider == 'ollama' else '' }}>Ollama (Local)</option>
+                    <option value="openai" {{ 'selected' if config.provider == 'openai' else '' }}>OpenAI Compatible</option>
+                    <option value="azure" {{ 'selected' if config.provider == 'azure' else '' }}>Azure AI</option>
+                </select>
+                <p class="help-text">Select the AI provider. Ollama runs locally. OpenAI Compatible works with any API that follows the OpenAI format (including local servers like LM Studio, text-generation-webui, etc).</p>
+            </div>
+            
+            <!-- API URL -->
+            <div class="form-group">
+                <label for="api_url">API URL</label>
+                <input type="url" 
+                       name="api_url" 
+                       id="api_url" 
+                       value="{{ config.api_url }}"
+                       placeholder="http://127.0.0.1:11434 (Ollama) or http://192.168.1.x:1234/v1 (OpenAI Compatible)"
+                       required>
+                <p class="help-text">The base URL for the AI API. For Ollama: http://127.0.0.1:11434. For OpenAI Compatible: include /v1 path (e.g., http://192.168.1.100:1234/v1)</p>
+            </div>
+            
+            <!-- API Key (shown only for OpenAI/Azure) -->
+            <div class="form-group" id="apiKeyGroup" style="display: none;">
+                <label for="api_key">API Key</label>
+                <input type="password" 
+                       name="api_key" 
+                       id="api_key" 
+                       placeholder="Enter your API key">
+                <p class="help-text">API key for OpenAI or Azure. Leave empty to keep existing.</p>
+                <div class="checkbox-group" style="margin-top: 10px;">
+                    <input type="checkbox" name="clear_api_key" id="clear_api_key" value="true">
+                    <label for="clear_api_key">Clear stored API key</label>
+                </div>
+            </div>
+            
+            <!-- Default Model -->
+            <div class="form-group">
+                <label for="default_model">Default Model</label>
+                <select name="default_model" id="default_model">
+                    {% if available_models %}
+                        {% for model in available_models %}
+                            <option value="{{ model }}" {{ 'selected' if config.default_model == model else '' }}>{{ model }}</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="{{ config.default_model }}">{{ config.default_model }} (No models found)</option>
+                    {% endif %}
+                </select>
+                <p class="help-text">Select the default AI model to use for analysis.</p>
+            </div>
+            
+            <!-- Enable/Disable Toggle -->
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" 
+                           name="is_enabled" 
+                           id="is_enabled" 
+                           {{ 'checked' if config.is_enabled else '' }}>
+                    <label for="is_enabled">Enable AI Analysis</label>
+                </div>
+                <p class="help-text">When disabled, AI analysis features will use default system settings.</p>
+            </div>
+            
+            <!-- Buttons -->
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">Save Configuration</button>
+                <button type="button" class="btn btn-outline" onclick="testConnection()">Test Connection</button>
+                <a href="{{ url_for('main.index') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="settings-card">
+        <h3>About AI Configuration</h3>
+        <p>This page allows you to configure the AI provider settings used for security analysis.</p>
+        <ul>
+            <li><strong>Ollama:</strong> Local AI runtime. Requires Ollama to be installed and running on your system.</li>
+            <li><strong>OpenAI:</strong> Use OpenAI's cloud-based models (API key required).</li>
+            <li><strong>Azure:</strong> Use Azure AI services (API key required).</li>
+        </ul>
+        <p><strong>Note:</strong> The default model is <code>{{ config.default_model }}</code>. Make sure you have downloaded this model if using Ollama.</p>
+    </div>
+</div>
+
+<script>
+    function toggleApiKeyField() {
+        const provider = document.getElementById('provider').value;
+        const apiKeyGroup = document.getElementById('apiKeyGroup');
+        
+        if (provider === 'ollama') {
+            apiKeyGroup.style.display = 'none';
+        } else {
+            apiKeyGroup.style.display = 'block';
+        }
+    }
+    
+    function testConnection() {
+        const apiUrl = document.getElementById('api_url').value;
+        const provider = document.getElementById('provider').value;
+        const statusDiv = document.getElementById('connectionStatus');
+        
+        if (!apiUrl) {
+            statusDiv.className = 'connection-status error';
+            statusDiv.textContent = 'Please enter an API URL';
+            return;
+        }
+        
+        // Show loading
+        statusDiv.className = 'connection-status';
+        statusDiv.innerHTML = '<span class="loading-spinner"></span> Testing connection...';
+        statusDiv.style.display = 'block';
+        
+        // Make API call
+        fetch('{{ url_for("main.api_test_connection") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                api_url: apiUrl,
+                provider: provider
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                statusDiv.className = 'connection-status success';
+                statusDiv.innerHTML = '<strong>Success:</strong> ' + data.message;
+            } else {
+                statusDiv.className = 'connection-status error';
+                statusDiv.innerHTML = '<strong>Error:</strong> ' + (data.error || 'Connection failed');
+            }
+        })
+        .catch(error => {
+            statusDiv.className = 'connection-status error';
+            statusDiv.innerHTML = '<strong>Error:</strong> ' + error.message;
+        });
+    }
+    
+    // Fetch models when API URL or provider changes
+    document.getElementById('api_url').addEventListener('change', fetchModels);
+    document.getElementById('provider').addEventListener('change', fetchModels);
+    
+    function fetchModels() {
+        const apiUrl = document.getElementById('api_url').value;
+        const provider = document.getElementById('provider').value;
+        const modelSelect = document.getElementById('default_model');
+        
+        if (!apiUrl) return;
+        
+        fetch('{{ url_for("main.api_ai_models") }}?api_url=' + encodeURIComponent(apiUrl) + '&provider=' + encodeURIComponent(provider))
+            .then(response => response.json())
+            .then(data => {
+                if (data.models && data.models.length > 0) {
+                    // Clear and populate model select
+                    modelSelect.innerHTML = '';
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching models:', error);
+            });
+    }
+</script>
+{% endblock %}

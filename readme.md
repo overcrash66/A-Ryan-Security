@@ -38,6 +38,7 @@ A-Ryan Security is a sophisticated security enhancement tool that extends beyond
 - **Threat Prediction**: Machine learning models for identifying suspicious network patterns
 - **Automated Analysis**: AI-driven security recommendations and risk assessments
 - **Ollama Integration**: Advanced AI analysis for comprehensive threat evaluation
+- **OpenAI-Compatible APIs**: Support for LM Studio, LocalAI, vLLM, and OpenAI itself
 - **Behavioral Analysis**: Intelligent detection of anomalous system behavior
 
 ### 📊 **Web-Based Dashboard**
@@ -180,6 +181,30 @@ python main.py
 - Network traffic monitoring
 - Firewall rule analysis
 - Port scanning protection
+
+---
+
+## 🤖 OpenAI-Compatible API Support
+
+In addition to local Ollama instances, A-Ryan-Security supports any OpenAI-compatible API (e.g., LM Studio, LocalAI, vLLM, or OpenAI itself).
+
+### Configuration via Dashboard
+
+1. Navigate to **AI Settings** in the dashboard.
+2. Select **OpenAI Compatible** as the provider.
+3. Enter your **API Base URL** (e.g., `http://localhost:1234/v1`).
+4. Enter your **Model ID** (e.g., `gpt-4o` or `local-model`).
+5. (Optional) Enter your **API Key** for remote providers.
+
+### Configuration via Environment
+
+You can also set defaults in your environment variables:
+```bash
+AI_PROVIDER=openai
+AI_API_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4o
+AI_API_KEY=your-api-key
+```
 
 ## Testing & Quality Assurance
 

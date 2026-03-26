@@ -100,6 +100,7 @@ body {
 .icon-history::before { content: "📋"; }
 .icon-process::before { content: "⚙️"; }
 .icon-whois::before { content: "🌐"; }
+.icon-ai::before { content: "🤖"; }
 .icon-report::before { content: "📄"; }
 
 /* Main Content */

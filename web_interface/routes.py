@@ -22,6 +22,7 @@ from security_modules.firewall import check_firewall_status, list_rules
 from security_modules.vuln_checker import scan_vulnerabilities
 from security_modules.network_analyzer import scan_network, analyze_traffic
 from security_modules.ai_integration import get_ai_advice, predict_threats, get_comprehensive_ai_analysis
+from security_modules import ai_config
 from reports import generate_pdf_report
 from security_modules.process_scanner import scan_running_processes, get_system_services, get_startup_programs
 import threading
@@ -87,6 +88,15 @@ class ChangePasswordForm(FlaskForm):
     new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=12)])
     confirm_password = PasswordField('Confirm New Password', validators=[DataRequired()])
     submit = SubmitField('Change Password')
+
+# AI Settings form
+class AISettingsForm(FlaskForm):
+    provider = StringField('Provider')
+    api_url = StringField('API URL', validators=[DataRequired()])
+    api_key = PasswordField('API Key')
+    default_model = StringField('Default Model', validators=[DataRequired()])
+    is_enabled = BooleanField('Enabled')
+    submit = SubmitField('Save')
 
 def url_is_safe(target):
     ref_url = urlparse(request.host_url)
@@ -882,7 +892,6 @@ def create_system_logs(data):
 
 # API endpoints for async status loading
 @bp.route('/api/status/av')
-
 @jwt_or_api_key_required
 def api_status_av():
     try:
@@ -894,7 +903,6 @@ def api_status_av():
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 @bp.route('/api/status/fw')
-
 @jwt_or_api_key_required
 def api_status_fw():
     try:
@@ -907,7 +915,6 @@ def api_status_fw():
 
 
 @bp.route('/api/status/net')
-
 @jwt_or_api_key_required
 def api_status_net():
     try:
@@ -1943,6 +1950,205 @@ def api_performance_stats():
         })
     except Exception as e:
         current_app.logger.error(f"Error getting performance stats: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+# AI Settings Routes
+@bp.route('/ai_settings', methods=['GET'])
+@login_required
+@require_admin
+def ai_settings():
+    """Display AI configuration settings page."""
+    current_app.logger.debug("Accessing /ai_settings route")
+    
+    # Get current user config or defaults
+    user_config = ai_config.get_ai_config(current_user.id)
+    
+    # Get available models from the configured API URL
+    available_models = ai_config.get_available_models(user_config.get('api_url', 'http://127.0.0.1:11434'))
+    
+    # If no models found, add default options
+    if not available_models:
+        available_models = [user_config.get('default_model', 'qwen2.5-coder:3b')]
+    
+    return render_template('ai_settings.html', 
+                           config=user_config, 
+                           available_models=available_models)
+
+
+@bp.route('/ai_settings', methods=['POST'])
+@login_required
+@require_admin
+def ai_settings_save():
+    """Save AI configuration settings."""
+    try:
+        current_app.logger.info(f"Saving AI config for user {current_user.id}")
+        
+        # Get form data
+        provider = request.form.get('provider', 'ollama')
+        api_url = request.form.get('api_url', 'http://127.0.0.1:11434').strip()
+        api_key = request.form.get('api_key', '').strip()
+        default_model = request.form.get('default_model', 'qwen2.5-coder:3b')
+        is_enabled = request.form.get('is_enabled', 'on') == 'on'
+        
+        # Validate API URL
+        if not api_url:
+            flash('API URL is required', 'error')
+            return redirect(url_for('main.ai_settings'))
+        
+        # Validate provider - only allow specific values
+        allowed_providers = ['ollama', 'openai', 'azure']
+        if provider not in allowed_providers:
+            flash('Invalid provider selected', 'error')
+            return redirect(url_for('main.ai_settings'))
+        
+        # Validate input lengths to prevent database issues
+        if len(api_url) > 255:
+            flash('API URL is too long (max 255 characters)', 'error')
+            return redirect(url_for('main.ai_settings'))
+        
+        if len(default_model) > 100:
+            flash('Model name is too long (max 100 characters)', 'error')
+            return redirect(url_for('main.ai_settings'))
+        
+        if len(api_key) > 256:
+            flash('API key is too long (max 256 characters)', 'error')
+            return redirect(url_for('main.ai_settings'))
+        
+        # Normalize the URL before validation
+        normalized_url = _normalize_url(api_url)
+        if not normalized_url:
+            flash('Invalid API URL. Please provide a valid URL (e.g., http://127.0.0.1:11434)', 'error')
+            return redirect(url_for('main.ai_settings'))
+        
+        # Build config data
+        config_data = {
+            'provider': provider,
+            'api_url': normalized_url,
+            'default_model': default_model,
+            'is_enabled': is_enabled
+        }
+        
+        # Handle API key: include if provided, or check for clear request
+        if api_key:
+            config_data['api_key'] = api_key
+        elif request.form.get('clear_api_key') == 'true':
+            # Clear the API key if explicitly requested
+            config_data['api_key'] = ''
+        
+        # Save configuration
+        success, message = ai_config.update_ai_config(current_user.id, config_data)
+        
+        if success:
+            flash('AI configuration saved successfully', 'success')
+            current_app.logger.info(f"AI config saved for user {current_user.id}")
+        else:
+            flash(f'Error saving configuration: {message}', 'error')
+            current_app.logger.error(f"Failed to save AI config for user {current_user.id}: {message}")
+        
+        return redirect(url_for('main.ai_settings'))
+        
+    except Exception as e:
+        current_app.logger.error(f"Error saving AI config: {e}")
+        flash('An error occurred while saving configuration', 'error')
+        return redirect(url_for('main.ai_settings'))
+
+
+def _normalize_url(url):
+    """
+    Normalize URL by adding http:// prefix if missing.
+    
+    Args:
+        url: URL string that may be missing protocol
+        
+    Returns:
+        Normalized URL with protocol, or None if invalid
+    """
+    from urllib.parse import urlparse
+    
+    if not url:
+        return None
+    
+    url = url.strip()
+    if url and not url.startswith(('http://', 'https://')):
+        url = 'http://' + url
+    
+    # Validate the URL is properly formed
+    try:
+        parsed = urlparse(url)
+        if not parsed.netloc:
+            return None
+        # Block dangerous schemes
+        if parsed.scheme in ('javascript', 'data', 'file'):
+            return None
+    except Exception:
+        return None
+    
+    return url
+
+
+@bp.route('/api/ai_models')
+@limiter.limit("30 per minute")
+@login_required
+@require_admin
+@csrf.exempt
+def api_ai_models():
+    """API endpoint to get available models from configured AI provider."""
+    try:
+        api_url = request.args.get('api_url', 'http://127.0.0.1:11434')
+        provider = request.args.get('provider', 'ollama')
+        
+        if provider == 'ollama':
+            models = ai_config.get_available_models(api_url)
+        elif provider == 'openai':
+            # Get API key from user config if available
+            from security_modules import ai_config as aic
+            user_config = aic.get_ai_config(current_user.id)
+            api_key = None
+            if user_config.get('api_key'):
+                api_key = aic.get_decrypted_api_key(current_user.id)
+            models = aic.get_openai_compatible_models(api_url, api_key)
+        else:
+            models = []
+        
+        if models:
+            return jsonify({'status': 'success', 'models': models})
+        else:
+            return jsonify({'status': 'success', 'models': [], 'message': 'No models found'})
+            
+    except Exception as e:
+        current_app.logger.error(f"Error fetching AI models: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@bp.route('/api/test_connection', methods=['POST'])
+@limiter.limit("30 per minute")
+@login_required
+@require_admin
+@csrf.exempt
+def api_test_connection():
+    """API endpoint to test AI provider connection."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'No data provided'}), 400
+        
+        api_url = data.get('api_url', '').strip()
+        provider = data.get('provider', 'ollama')
+        
+        if not api_url:
+            return jsonify({'status': 'error', 'error': 'API URL is required'}), 400
+        
+        # Test the connection
+        success, message = ai_config.test_connection(api_url, provider)
+        
+        if success:
+            return jsonify({'status': 'success', 'message': message})
+        else:
+            return jsonify({'status': 'error', 'error': message})
+            
+    except Exception as e:
+        current_app.logger.error(f"Error testing connection: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
