@@ -199,10 +199,10 @@
                 <label for="provider">Provider</label>
                 <select name="provider" id="provider" onchange="toggleApiKeyField()">
                     <option value="ollama" {{ 'selected' if config.provider == 'ollama' else '' }}>Ollama (Local)</option>
-                    <option value="openai" {{ 'selected' if config.provider == 'openai' else '' }} disabled>OpenAI (Coming Soon)</option>
-                    <option value="azure" {{ 'selected' if config.provider == 'azure' else '' }} disabled>Azure AI (Coming Soon)</option>
+                    <option value="openai" {{ 'selected' if config.provider == 'openai' else '' }}>OpenAI Compatible</option>
+                    <option value="azure" {{ 'selected' if config.provider == 'azure' else '' }}>Azure AI</option>
                 </select>
-                <p class="help-text">Select the AI provider. Currently only Ollama is fully supported. OpenAI and Azure are coming soon.</p>
+                <p class="help-text">Select the AI provider. Ollama runs locally. OpenAI Compatible works with any API that follows the OpenAI format (including local servers like LM Studio, text-generation-webui, etc).</p>
             </div>
             
             <!-- API URL -->
@@ -212,9 +212,9 @@
                        name="api_url" 
                        id="api_url" 
                        value="{{ config.api_url }}"
-                       placeholder="http://127.0.0.1:11434"
+                       placeholder="http://127.0.0.1:11434 (Ollama) or http://192.168.1.x:1234/v1 (OpenAI Compatible)"
                        required>
-                <p class="help-text">The base URL for the AI API. For Ollama, this is typically http://127.0.0.1:11434</p>
+                <p class="help-text">The base URL for the AI API. For Ollama: http://127.0.0.1:11434. For OpenAI Compatible: include /v1 path (e.g., http://192.168.1.100:1234/v1)</p>
             </div>
             
             <!-- API Key (shown only for OpenAI/Azure) -->
@@ -335,14 +335,18 @@
         });
     }
     
-    // Fetch models when API URL changes
-    document.getElementById('api_url').addEventListener('change', function() {
-        const apiUrl = this.value;
+    // Fetch models when API URL or provider changes
+    document.getElementById('api_url').addEventListener('change', fetchModels);
+    document.getElementById('provider').addEventListener('change', fetchModels);
+    
+    function fetchModels() {
+        const apiUrl = document.getElementById('api_url').value;
+        const provider = document.getElementById('provider').value;
         const modelSelect = document.getElementById('default_model');
         
         if (!apiUrl) return;
         
-        fetch('{{ url_for("main.api_ai_models") }}?api_url=' + encodeURIComponent(apiUrl))
+        fetch('{{ url_for("main.api_ai_models") }}?api_url=' + encodeURIComponent(apiUrl) + '&provider=' + encodeURIComponent(provider))
             .then(response => response.json())
             .then(data => {
                 if (data.models && data.models.length > 0) {
@@ -359,6 +363,6 @@
             .catch(error => {
                 console.error('Error fetching models:', error);
             });
-    });
+    }
 </script>
 {% endblock %}

@@ -251,8 +251,9 @@ def update_ai_config(user_id, config_data):
 def _is_safe_url(url):
     """
     Validate URL to prevent SSRF attacks.
-    Allows http/https to public IPs/hostnames and loopback addresses (127.0.0.0/8, ::1).
-    Blocks private IP ranges (10.x.x.x, 192.168.x.x, 172.16-31.x.x) to prevent SSRF to internal networks.
+    Allows http/https to public IPs/hostnames, loopback addresses (127.0.0.0/8, ::1),
+    and private network addresses (10.x.x.x, 192.168.x.x, 172.16-31.x.x) for local AI services.
+    Blocks dangerous schemes (javascript, data, file).
     
     Args:
         url: URL string to validate
@@ -293,12 +294,8 @@ def _is_safe_url(url):
             ip_str = socket.gethostbyname(hostname)
             ip = ipaddress.ip_address(ip_str)
             
-            # Block private IP ranges (10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12)
-            # but allow loopback (127.0.0.0/8 and ::1)
-            if ip.is_private and not ip.is_loopback:
-                return False
-            
-            # Block reserved IPs but allow loopback
+            # Block reserved IPs but allow loopback and private addresses
+            # (for local Ollama and OpenAI-compatible APIs on private networks)
             if ip.is_reserved and not ip.is_loopback:
                 return False
             
@@ -307,11 +304,15 @@ def _is_safe_url(url):
                 return False
             
         except socket.gaierror:
-            # If we can't resolve, deny the URL to prevent SSRF via DNS rebinding
-            logger.warning(f"DNS resolution failed for {hostname} - denying to prevent SSRF")
-            return False
+            # If we can't resolve, check if it's a valid hostname
+            # Allow valid hostnames that couldn't be resolved (might be reachable)
+            if hostname and '.' in hostname:
+                logger.debug(f"DNS resolution failed for {hostname}, but allowing based on valid hostname format")
+            else:
+                logger.warning(f"DNS resolution failed for {hostname} - denying to prevent SSRF")
+                return False
         except ValueError:
-            # Not a valid IP, check hostname-based restrictions below
+            # Not a valid IP, allow valid hostnames
             pass
         
         return True
@@ -359,6 +360,62 @@ def get_available_models(api_url):
         return []
 
 
+def get_openai_compatible_models(api_url, api_key=None):
+    """
+    Fetch available models from OpenAI-compatible API.
+    
+    Args:
+        api_url: Base URL of the OpenAI-compatible API
+        api_key: Optional API key for authentication
+        
+    Returns:
+        List of model names, or empty list on error
+    """
+    # Validate URL to prevent SSRF
+    if not _is_safe_url(api_url):
+        logger.warning(f"Blocked SSRF attempt: {api_url}")
+        return []
+    
+    headers = {'Accept': 'application/json'}
+    if api_key:
+        headers['Authorization'] = f'Bearer {api_key}'
+    
+    # Try various model listing endpoints
+    endpoints = ['/models', '/v1/models']
+    
+    for endpoint in endpoints:
+        try:
+            url = f"{api_url.rstrip('/')}{endpoint}"
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # OpenAI format: data is array of model objects
+                if isinstance(data, dict) and 'data' in data:
+                    models = [m.get('id', m.get('name', '')) for m in data['data']]
+                elif isinstance(data, list):
+                    models = [m.get('id', m.get('name', '')) for m in data]
+                else:
+                    models = []
+                
+                # Filter empty model names
+                models = [m for m in models if m]
+                logger.info(f"Retrieved {len(models)} models from {url}")
+                return models
+            else:
+                logger.debug(f"Endpoint {endpoint} returned HTTP {response.status_code}")
+                
+        except requests.exceptions.ConnectionError:
+            logger.debug(f"Could not connect to {url}")
+        except requests.exceptions.Timeout:
+            logger.debug(f"Timeout connecting to {url}")
+        except Exception as e:
+            logger.debug(f"Error fetching models from {url}: {e}")
+    
+    logger.warning(f"Could not get models from any endpoint at {api_url}")
+    return []
+
+
 def test_connection(api_url, provider='ollama'):
     """
     Test connection to AI provider.
@@ -382,6 +439,38 @@ def test_connection(api_url, provider='ollama'):
                 
         except Exception as e:
             logger.error(f"Connection test failed: {e}")
+            return False, f"Connection failed: {str(e)}"
+    
+    elif provider == 'openai':
+        try:
+            # Test OpenAI-compatible endpoint
+            # Try to get models from /models endpoint
+            response = requests.get(f"{api_url}/models", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                models = data.get('data', []) if isinstance(data, dict) else []
+                model_count = len(models) if isinstance(models, list) else 0
+                return True, f"Connected successfully. Found {model_count} models."
+            elif response.status_code == 401:
+                return True, "Connected (API key may be invalid)"
+            elif response.status_code == 404:
+                # Try /v1/models for OpenAI-compatible APIs
+                response = requests.get(f"{api_url.rstrip('/')}/v1/models", timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    models = data.get('data', []) if isinstance(data, dict) else []
+                    return True, f"Connected. Found {len(models)} models."
+                return False, "Connected but /models endpoint not found. Verify API URL."
+            else:
+                return False, f"Connection test returned HTTP {response.status_code}"
+                
+        except requests.exceptions.ConnectionError:
+            return False, "Connection failed. Verify API URL is accessible."
+        except requests.exceptions.Timeout:
+            return False, "Connection timed out. Check if the server is reachable."
+        except Exception as e:
+            logger.error(f"OpenAI connection test failed: {e}")
             return False, f"Connection failed: {str(e)}"
     
     # Add other providers as needed

@@ -2096,8 +2096,20 @@ def api_ai_models():
     """API endpoint to get available models from configured AI provider."""
     try:
         api_url = request.args.get('api_url', 'http://127.0.0.1:11434')
+        provider = request.args.get('provider', 'ollama')
         
-        models = ai_config.get_available_models(api_url)
+        if provider == 'ollama':
+            models = ai_config.get_available_models(api_url)
+        elif provider == 'openai':
+            # Get API key from user config if available
+            from security_modules import ai_config as aic
+            user_config = aic.get_ai_config(current_user.id)
+            api_key = None
+            if user_config.get('api_key'):
+                api_key = aic.get_decrypted_api_key(current_user.id)
+            models = aic.get_openai_compatible_models(api_url, api_key)
+        else:
+            models = []
         
         if models:
             return jsonify({'status': 'success', 'models': models})

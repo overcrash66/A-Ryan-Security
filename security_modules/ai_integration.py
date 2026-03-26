@@ -2,16 +2,19 @@ import ollama
 import logging
 import os
 import json
+import requests
 
 def get_ai_client(user_id=None):
     """
-    Get configured Ollama client based on user settings or system defaults.
+    Get configured AI client based on user settings or system defaults.
     
     Args:
         user_id: Optional user ID to get user-specific config
         
     Returns:
-        Tuple of (client, model_name, api_key)
+        Tuple of (client_type, config_dict)
+        - client_type: 'ollama' or 'openai'
+        - config_dict: contains api_url, model, api_key, etc.
     """
     from security_modules import ai_config
     
@@ -20,16 +23,140 @@ def get_ai_client(user_id=None):
     
     api_url = config.get('api_url', 'http://127.0.0.1:11434')
     model = config.get('default_model', 'qwen2.5-coder:3b')
+    provider = config.get('provider', 'ollama')
     
     # Get decrypted API key if available
     api_key = None
     if user_id and config.get('api_key'):
         api_key = ai_config.get_decrypted_api_key(user_id)
     
-    # Create client with configured URL
-    client = ollama.Client(host=api_url)
+    return provider, {
+        'api_url': api_url,
+        'model': model,
+        'api_key': api_key,
+        'provider': provider
+    }
+
+
+def call_ai_api(prompt, config):
+    """
+    Call AI API based on provider type.
     
-    return client, model, api_key
+    Args:
+        prompt: The prompt to send to the AI
+        config: Configuration dict with api_url, model, api_key, provider
+        
+    Returns:
+        AI response content or None on failure
+    """
+    provider = config.get('provider', 'ollama')
+    
+    if provider == 'ollama':
+        return call_ollama(prompt, config)
+    elif provider == 'openai':
+        return call_openai_compatible(prompt, config)
+    else:
+        logging.error(f"Unsupported provider: {provider}")
+        return None
+
+
+def call_ollama(prompt, config):
+    """
+    Call Ollama API.
+    
+    Args:
+        prompt: The prompt to send
+        config: Configuration dict
+        
+    Returns:
+        AI response or None on failure
+    """
+    api_url = config.get('api_url', 'http://127.0.0.1:11434')
+    model = config.get('model', 'qwen2.5-coder:3b')
+    
+    try:
+        client = ollama.Client(host=api_url)
+        response = client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
+        return response['message']['content']
+    except Exception as e:
+        logging.error(f"Ollama API call failed: {e}")
+        return None
+
+
+def call_openai_compatible(prompt, config):
+    """
+    Call OpenAI-compatible API.
+    
+    Args:
+        prompt: The prompt to send
+        config: Configuration dict with api_url, model, api_key
+        
+    Returns:
+        AI response or None on failure
+    """
+    api_url = config.get('api_url', '')
+    model = config.get('model', '')
+    api_key = config.get('api_key', '')
+    
+    if not api_url or not model:
+        logging.error("OpenAI-compatible API requires api_url and model")
+        return None
+    
+    # Ensure URL ends properly for API calls
+    if not api_url.endswith('/'):
+        api_url += '/'
+    
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    
+    if api_key:
+        headers['Authorization'] = f'Bearer {api_key}'
+    
+    payload = {
+        'model': model,
+        'messages': [{'role': 'user', 'content': prompt}],
+        'temperature': 0.7
+    }
+    
+    try:
+        # Try /v1/chat/completions first (OpenAI standard)
+        response = requests.post(
+            f"{api_url}v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=120
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            if 'choices' in data and len(data['choices']) > 0:
+                return data['choices'][0]['message']['content']
+        elif response.status_code == 401:
+            logging.warning("OpenAI API key may be invalid")
+        elif response.status_code == 404:
+            # Try without /v1/ prefix
+            response = requests.post(
+                f"{api_url}chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if 'choices' in data and len(data['choices']) > 0:
+                    return data['choices'][0]['message']['content']
+        else:
+            logging.error(f"OpenAI-compatible API returned {response.status_code}: {response.text}")
+            
+    except requests.exceptions.Timeout:
+        logging.error("OpenAI-compatible API request timed out")
+    except requests.exceptions.ConnectionError as e:
+        logging.error(f"OpenAI-compatible API connection failed: {e}")
+    except Exception as e:
+        logging.error(f"OpenAI-compatible API call failed: {e}")
+    
+    return None
 
 
 def get_comprehensive_ai_analysis(results):
@@ -45,43 +172,41 @@ def get_comprehensive_ai_analysis(results):
     
     try:
         # Get configured client and model
-        client, model, api_key = get_ai_client()
+        provider, config = get_ai_client()
         
-        logging.info(f"Using Ollama client: {client._client._host}, model: {model}")
+        logging.info(f"Using {provider} at {config['api_url']}, model: {config['model']}")
         
         # Use available model
-        response = client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
-        analysis = response['message']['content']
-        logging.info(f'Comprehensive AI analysis generated successfully. Length: {len(analysis)} characters')
+        analysis = call_ai_api(prompt, config)
         
-        # Parse the structured response
-        parsed_analysis = parse_ai_analysis(analysis)
-        return parsed_analysis
-        
-    except Exception as e:
-        logging.error(f'Comprehensive AI analysis error: {type(e).__name__}: {str(e)}')
-        logging.warning(f'Primary connection failed. Trying fallback to custom port 11435...')
-        
-        try:
-            # Fallback to custom port if default fails
-            from security_modules import ai_config
-            fallback_url = f"http://127.0.0.1:{ai_config.FALLBACK_PORT}"
-            fallback_client = ollama.Client(host=fallback_url)
-            
-            # Use configured model on fallback
-            config = ai_config.get_ai_config(None)
-            model = config.get('default_model', 'qwen2.5-coder:3b')
-            
-            response = fallback_client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
-            analysis = response['message']['content']
-            logging.info(f'Comprehensive AI analysis generated on fallback port. Length: {len(analysis)} characters')
-            
+        if analysis:
+            logging.info(f'Comprehensive AI analysis generated successfully. Length: {len(analysis)} characters')
+            # Parse the structured response
             parsed_analysis = parse_ai_analysis(analysis)
             return parsed_analysis
+        else:
+            raise Exception("AI API call returned no response")
             
+    except Exception as e:
+        logging.error(f'Comprehensive AI analysis error: {type(e).__name__}: {str(e)}')
+        
+        # Try fallback to default Ollama port if primary fails
+        try:
+            from security_modules import ai_config
+            fallback_url = f"http://127.0.0.1:{ai_config.FALLBACK_PORT}"
+            fallback_config = config.copy()
+            fallback_config['api_url'] = fallback_url
+            
+            logging.info(f"Trying fallback at {fallback_url}")
+            analysis = call_ai_api(prompt, fallback_config)
+            
+            if analysis:
+                parsed_analysis = parse_ai_analysis(analysis)
+                return parsed_analysis
         except Exception as fallback_error:
             logging.error(f'Comprehensive AI analysis fallback failed: {type(fallback_error).__name__}: {str(fallback_error)}')
-            return None
+        
+        return None
 
 def parse_ai_analysis(analysis_text):
     """Parse AI analysis into structured components."""
@@ -255,42 +380,44 @@ def get_ai_advice(results):
     # Add diagnostic logging
     logging.info("Starting AI advice generation...")
     logging.info(f"Enhanced prompt length: {len(prompt)} characters")
-    logging.info(f"Ollama client configuration: host={getattr(ollama._client, 'host', 'default')}")
     
     try:
         # Test connection first
-        logging.info("Testing Ollama connection...")
+        logging.info("Testing AI connection...")
         
         # Get configured client and model
-        client, model, api_key = get_ai_client()
+        provider, config = get_ai_client()
         
-        logging.info(f"Using Ollama client: {client._client._host}, model: {model}")
+        logging.info(f"Using {provider} at {config['api_url']}, model: {config['model']}")
         
-        response = client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
-        advice = response['message']['content']
-        logging.info(f'AI advice generated successfully. Length: {len(advice)} characters')
-        return advice
+        advice = call_ai_api(prompt, config)
+        
+        if advice:
+            logging.info(f'AI advice generated successfully. Length: {len(advice)} characters')
+            return advice
+        else:
+            raise Exception("AI API call returned no response")
+            
     except Exception as e:
         logging.error(f'AI error details: {type(e).__name__}: {str(e)}')
-        logging.warning(f'Ollama connection failed. Trying custom port 11435...')
         
+        # Try fallback to default Ollama port if primary fails
         try:
-            # Fallback to custom port if default fails
             from security_modules import ai_config
             fallback_url = f"http://127.0.0.1:{ai_config.FALLBACK_PORT}"
-            fallback_client = ollama.Client(host=fallback_url)
+            fallback_config = config.copy()
+            fallback_config['api_url'] = fallback_url
             
-            # Use configured model on fallback
-            config = ai_config.get_ai_config(None)
-            model = config.get('default_model', 'qwen2.5-coder:3b')
+            logging.info(f"Trying fallback at {fallback_url}")
+            advice = call_ai_api(prompt, fallback_config)
             
-            response = fallback_client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
-            advice = response['message']['content']
-            logging.info(f'AI advice generated on fallback port. Length: {len(advice)} characters')
-            return advice
+            if advice:
+                logging.info(f'AI advice generated on fallback. Length: {len(advice)} characters')
+                return advice
         except Exception as fallback_error:
-            logging.error(f'Fallback to default port also failed: {type(fallback_error).__name__}: {str(fallback_error)}')
-            return f"Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download"
+            logging.error(f'Fallback also failed: {type(fallback_error).__name__}: {str(fallback_error)}')
+        
+        return f"Failed to connect to AI service. Please check that your AI provider is running and accessible."
 
 def build_enhanced_security_prompt(results):
     """Build an enhanced prompt that provides detailed context for AI analysis."""
@@ -374,31 +501,35 @@ def predict_threats(logs):
     
     try:
         # Get configured client and model
-        client, model, api_key = get_ai_client()
+        provider, config = get_ai_client()
         
-        logging.info(f"Using Ollama client: {client._client._host}, model: {model}")
+        logging.info(f"Using {provider} at {config['api_url']}, model: {config['model']}")
         
-        response = client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
-        prediction = response['message']['content']
-        logging.info(f'Threat prediction generated successfully. Length: {len(prediction)} characters')
-        return prediction
+        prediction = call_ai_api(prompt, config)
+        
+        if prediction:
+            logging.info(f'Threat prediction generated successfully. Length: {len(prediction)} characters')
+            return prediction
+        else:
+            raise Exception("AI API call returned no response")
+            
     except Exception as e:
         logging.error(f'AI predict_threats error details: {type(e).__name__}: {str(e)}')
         
         try:
-            # Fallback to custom port if default fails
+            # Try fallback to default Ollama port
             from security_modules import ai_config
             fallback_url = f"http://127.0.0.1:{ai_config.FALLBACK_PORT}"
-            fallback_client = ollama.Client(host=fallback_url)
+            fallback_config = config.copy()
+            fallback_config['api_url'] = fallback_url
             
-            # Use configured model on fallback
-            config = ai_config.get_ai_config(None)
-            model = config.get('default_model', 'qwen2.5-coder:3b')
+            logging.info(f"Trying fallback at {fallback_url}")
+            prediction = call_ai_api(prompt, fallback_config)
             
-            response = fallback_client.chat(model=model, messages=[{'role': 'user', 'content': prompt}])
-            prediction = response['message']['content']
-            logging.info(f'Threat prediction generated on fallback port. Length: {len(prediction)} characters')
-            return prediction
+            if prediction:
+                logging.info(f'Threat prediction generated on fallback. Length: {len(prediction)} characters')
+                return prediction
         except Exception as fallback_error:
             logging.error(f'Threat prediction fallback failed: {type(fallback_error).__name__}: {str(fallback_error)}')
-            return "AI prediction service temporarily unavailable due to connection issues."
+        
+        return "AI prediction service temporarily unavailable due to connection issues."

@@ -1,8 +1,9 @@
-from web_interface.app import app
+from web_interface import create_app
 from models import db, User
 from werkzeug.security import generate_password_hash
 
 def reset_admin():
+    app = create_app()
     with app.app_context():
         admin = User.query.filter_by(username='admin').first()
         if not admin:
